@@ -27,15 +27,51 @@ interaction = "Minor"
 effect = "No significant effect"
 toxicity_score = 20
 
+interaction_score = 0
+
+# Drug-based risk
 if drug_a != drug_b:
-    if "Warfarin" in [drug_a, drug_b]:
-        interaction = "Severe"
-        effect = "Increased toxicity"
-        toxicity_score = 80
-    elif kidney == "Impaired" or liver == "Impaired":
-        interaction = "Moderate"
-        effect = "Reduced clearance"
-        toxicity_score = 50
+    interaction_score += 1
+
+if "Warfarin" in [drug_a, drug_b]:
+    interaction_score += 3
+
+# Patient factors
+if kidney == "Impaired":
+    interaction_score += 2
+
+if liver == "Impaired":
+    interaction_score += 2
+
+if age > 65:
+    interaction_score += 1
+
+# Dose factor
+if dose > 500:
+    interaction_score += 2
+
+# Final interpretation
+if interaction_score <= 2:
+    interaction = "Minor"
+    effect = "No significant effect"
+elif interaction_score <= 5:
+    interaction = "Moderate"
+    effect = "Increased toxicity risk"
+else:
+    interaction = "Severe"
+    effect = "High toxicity / unsafe combination"
+toxicity_score = (
+    (dose / 1000) * 40 +
+    (age / 90) * 20 +
+    (20 if kidney == "Impaired" else 0) +
+    (20 if liver == "Impaired" else 0)
+)
+
+if "Warfarin" in [drug_a, drug_b]:
+    toxicity_score += 15
+
+toxicity_score = min(round(toxicity_score, 1), 100)
+
 
 st.subheader("Interaction Level:")
 st.success(interaction)
