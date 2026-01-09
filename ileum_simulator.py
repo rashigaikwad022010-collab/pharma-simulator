@@ -158,27 +158,48 @@ if experiment_type == "Single Drug":
 # -----------------------------
 # TWO DRUG FLOW
 # -----------------------------
+
 else:
     drug_A = st.text_input("Drug A Name", value="Acetylcholine")
     drug_B = st.text_input("Drug B Name", value="Atropine")
     
     doses_A = [st.number_input(f"Drug A Dose {i}", min_value=0.0, step=0.1, key=f"da_dose_{i}") for i in range(1,6)]
     doses_B = [st.number_input(f"Drug B Dose {i}", min_value=0.0, step=0.1, key=f"db_dose_{i}") for i in range(1,6)]
+    # Average antagonist dose (Drug B effect)
+avg_B = np.mean(doses_B)
+
     
     interaction = st.selectbox("Type of interaction", ["Competitive Antagonist", "Non-competitive Antagonist", "No Interaction"])
     
-    if use_simulation:
-        responses_A = simulate_response(doses_A, Max=Max_val, EC50=EC50_val, n=Hill_n)
-        responses_B = simulate_response(doses_B, Max=Max_val*0.8, EC50=EC50_val*1.2, n=Hill_n)
-        if interaction == "Competitive Antagonist":
-            Ki = 2
-            responses_A_with_B = responses_A / (1 + np.array(doses_B)/Ki)
-        elif interaction == "Non-competitive Antagonist":
-            fraction_blocked = 0.4
-            responses_A_with_B = responses_A * (1 - fraction_blocked)
-        else:
-            responses_A_with_B = responses_A
-        st.info("Responses auto-generated using virtual lab model")
+   if use_simulation:
+    # Simulate responses for Drug A and Drug B
+    responses_A = simulate_response(doses_A, Max=Max_val, EC50=EC50_val, n=Hill_n)
+    responses_B = simulate_response(doses_B, Max=Max_val*0.8, EC50=EC50_val*1.2, n=Hill_n)
+
+    # Compute Drug A response with Drug B
+    if interaction == "Competitive Antagonist":
+        # For simplicity, we take average dose of B
+        avg_B = np.mean(doses_B)
+        # Rightward shift of EC50
+        EC50_mod = EC50_val * (1 + 3 * avg_B)
+        responses_A_with_B = simulate_response(doses_A, Max=Max_val, EC50=EC50_mod, n=Hill_n)
+
+    elif interaction == "Non-competitive Antagonist":
+        # Slider to control how much Emax is reduced
+        block_fraction = st.sidebar.slider(
+            "Non-competitive Antagonist Block (%)",
+            min_value=0, max_value=90, value=40, step=5
+        ) / 100
+        responses_A_with_B = responses_A * (1 - block_fraction)
+
+    else:
+        # No interaction
+        responses_A_with_B = responses_A
+
+    st.info("Responses auto-generated using virtual lab model")
+
+
+       
     else:
         responses_A = [st.number_input(f"Response for Drug A Dose {dose}", min_value=0.0, step=0.5, key=f"da_resp_{i}") for i,dose in enumerate(doses_A)]
         responses_B = [st.number_input(f"Response for Drug B Dose {dose}", min_value=0.0, step=0.5, key=f"db_resp_{i}") for i,dose in enumerate(doses_B)]
