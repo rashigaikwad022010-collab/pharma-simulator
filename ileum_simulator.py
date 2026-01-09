@@ -63,9 +63,23 @@ with st.expander("ℹ️ Extra Theory / Tips for this Experiment (Click to Read)
 # -----------------------------
 # STEP-BY-STEP VIRTUAL LAB VISUALS
 # -----------------------------
-with st.expander("🧪 Virtual Wet Lab Procedure (Images & GIFs)"):
-   st.write("🧪 Image would appear here in the full virtual lab.")
-st.write("Step placeholder for illustration")
+with st.expander("🧪 Virtual Wet Lab Procedure (Visuals)"):
+
+    st.markdown("### Step 1: Chicken Ileum Isolation")
+    st.image("https://lh3.googleusercontent.com/gg-dl/ABS2GSmUUJZIolrlJvXZNuAgLZxHyM4k46FnZxOOlPT3Zcsn0flUvV50cLgv7RSweBOHCAy9sdL_EeBi-4H7F_GYFQ7hL2i7b9J-O0htoKVCycfMwOhQsHAWAuovqXstgwbzRRolDWjFDZHD3owIbqhpJZtMBjj-r3aww3FSMTtZamIjfazYKQ=s1024-rj_FOR_ILEUM_ISOLATED", caption="Isolated chicken ileum", use_column_width=True)
+
+    st.markdown("### Step 2: Cleaning the Ileum")
+    st.image("https://chatgpt.com/backend-api/estuary/content?id=file_00000000d0d47207952b6971d03de556&ts=491104&p=fs&cid=1&sig=2e9d5cef2e2e8fba4b217981466d7651e4f09b4688ffc0da2a30314ae0929349&v=0_FOR_ILEUM_CLEANED", caption="Ileum cleaned and trimmed", use_column_width=True)
+
+    st.markdown("### Step 3: Mounting in Organ Bath")
+    st.image("https://lh3.googleusercontent.com/gg-dl/ABS2GSlkquct-RADAH0hdN6Y_hWCMOJujZQv-eTmqovdrO1W5jTqGWlKxFzTRYDZLTeOazp2pjmt35TAWj6AiPkuPNd-tDvJI_bCwG0dhDWb2ZEZdDq5PN6_0JpcOcZUwARiu6cB1P7-irfMYsrSrqsgtVJ8HtJrblDOf2_UjwQicK21zahCJw=s1024-rj_FOR_ILEUM_ORGAN_BATH", caption="Ileum mounted in organ bath", use_column_width=True)
+
+    st.markdown("### Step 4: Connecting to Transducer/Simulator")
+    st.image("https://lh3.googleusercontent.com/gg-dl/ABS2GSmBa5rMbni0qx8lUoGNOd9j3GxteNEHWOnNVsnCE9H9ELC3vj6fE_-fwBXFCp8ruRZAW8y2kRU5zPue2FBMaGrsww3GLbd25T_MVG7SNoRIOjz0Z0HG1MZLmnXntRsZgVmJg8WrL1B6RjpVjQsdbEh8tY1e5eln2dZVRGJkWVV_5iEWhQ=s1024-rj_FOR_ORGAN_BATH_TRANSDUCER", caption="Tissue connected to recording device", use_column_width=True)
+
+    st.markdown("### Step 5: Adding Drug & Recording Response")
+    st.image("https://lh3.googleusercontent.com/gg-dl/ABS2GSkGNirDeJ6sgVyli4VD68kXCuRBdPYgxNyTXvc64D8jqhGGMwkFsihAJNLXRvUl3lvVgJBa7fHhERH4QAEce4LWS7Ma_dUDYxooUfsoWfrM2iq1NDTt5OXxr8RGF-EMY5T-rk5IezLs9_xq11Q0p1J0Erp4gsBzM1sHja4-zptsrPQBkQ=s1024-rj_FOR_DRUG_ADDED_GIF", caption="Simulated tissue contraction", use_column_width=True)
+
 
 
 # -----------------------------
