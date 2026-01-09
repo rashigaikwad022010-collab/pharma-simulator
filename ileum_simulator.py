@@ -64,20 +64,9 @@ with st.expander("ℹ️ Extra Theory / Tips for this Experiment (Click to Read)
 # STEP-BY-STEP VIRTUAL LAB VISUALS
 # -----------------------------
 with st.expander("🧪 Virtual Wet Lab Procedure (Images & GIFs)"):
-    st.markdown("### Step 1: Chicken Ileum Isolation")
-    st.image("images/ileum_isolated.jpg", caption="Isolated chicken ileum", use_column_width=True)
-    
-    st.markdown("### Step 2: Cleaning the Ileum")
-    st.image("images/ileum_cleaned.jpg", caption="Ileum cleaned and trimmed", use_column_width=True)
-    
-    st.markdown("### Step 3: Mounting in Organ Bath")
-    st.image("images/ileum_organ_bath.jpg", caption="Ileum mounted in organ bath", use_column_width=True)
-    
-    st.markdown("### Step 4: Connecting to Transducer/Simulator")
-    st.image("images/organ_bath_transducer.jpg", caption="Tissue connected to recording device", use_column_width=True)
-    
-    st.markdown("### Step 5: Adding Drug & Recording Response")
-    st.image("images/drug_added.gif", caption="Simulated tissue contraction", use_column_width=True)
+   st.write("🧪 Image would appear here in the full virtual lab.")
+st.write("Step placeholder for illustration")
+
 
 # -----------------------------
 # SIMULATION OPTION
