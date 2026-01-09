@@ -65,12 +65,7 @@ with st.expander("ℹ️ Extra Theory / Tips for this Experiment (Click to Read)
 # -----------------------------
 with st.expander("🧪 Virtual Wet Lab Procedure (Visuals)"):
 
-   with st.expander("🧪 Virtual Wet Lab Procedure (Visuals)"):
-st.write("IMAGE TEST BELOW 👇")
-
-st.image(
-    "https://upload.wikimedia.org/wikipedia/commons/3/3c/Intestine_anatomy.png"
-)
+    st.write("IMAGE TEST BELOW 👇")
 
     st.markdown("### Step 1: Chicken Ileum Isolation")
     st.image(
@@ -106,6 +101,7 @@ st.image(
         caption="Smooth muscle contraction after drug addition",
         use_column_width=True
     )
+
 
 
 
