@@ -63,44 +63,26 @@ with st.expander("ℹ️ Extra Theory / Tips for this Experiment (Click to Read)
 # -----------------------------
 # STEP-BY-STEP VIRTUAL LAB VISUALS
 # -----------------------------
-with st.expander("🧪 Virtual Wet Lab Procedure (Visuals)"):
+# -----------------------------
+# STEP-BY-STEP VIRTUAL LAB VISUALS
+# -----------------------------
+with st.expander("🧪 Virtual Wet Lab Procedure (Virtual Visualization)"):
 
-    st.write("IMAGE TEST BELOW 👇")
+    st.markdown("### 🐔 Step 1: Isolation of Chicken Ileum")
+    st.info("The chicken is humanely sacrificed. Ileum portion is identified and isolated.")
 
-    st.markdown("### Step 1: Chicken Ileum Isolation")
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/3/3c/Intestine_anatomy.png",
-        caption="Chicken ileum identified",
-        use_column_width=True
-    )
+    st.markdown("### ✂️ Step 2: Cleaning and Trimming")
+    st.info("Mesenteric fat and contents are removed carefully using forceps.")
 
-    st.markdown("### Step 2: Cleaning the Ileum")
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/6/6e/Dissection_tools.jpg",
-        caption="Cleaning and trimming the ileum",
-        use_column_width=True
-    )
+    st.markdown("### 🛁 Step 3: Mounting in Organ Bath")
+    st.info("The ileum is mounted in an organ bath containing Tyrode solution at 37°C.")
 
-    st.markdown("### Step 3: Mounting in Organ Bath")
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/0/0e/Organ-bath_diagram.png",
-        caption="Ileum mounted in organ bath",
-        use_column_width=True
-    )
+    st.markdown("### 📈 Step 4: Connecting to Transducer")
+    st.info("The tissue is connected to a force transducer for recording contractions.")
 
-    st.markdown("### Step 4: Connecting to Transducer")
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/5/5e/Physiology_transducer_setup.png",
-        caption="Tissue connected to transducer",
-        use_column_width=True
-    )
+    st.markdown("### 💊 Step 5: Drug Addition & Recording")
+    st.info("Graded doses of drug are added and contractions are recorded virtually.")
 
-    st.markdown("### Step 5: Drug Addition & Response")
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/1/1e/Smooth_muscle_contraction.png",
-        caption="Smooth muscle contraction after drug addition",
-        use_column_width=True
-    )
 
 
 
