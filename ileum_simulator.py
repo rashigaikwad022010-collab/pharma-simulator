@@ -18,9 +18,9 @@ module = st.sidebar.radio(
     ]
 )
 
-# ----------------------------------------------------------------
-# DRUG DATABASE (80 COMMON DRUGS)
-# ----------------------------------------------------------------
+# -----------------------------------------------------
+# LARGE DRUG DATABASE
+# -----------------------------------------------------
 
 drug_list = [
 "Aspirin","Ibuprofen","Paracetamol","Diclofenac","Naproxen",
@@ -43,62 +43,73 @@ drug_list = [
 "Ondansetron","Domperidone","Metoclopramide"
 ]
 
-# ----------------------------------------------------------------
+# -----------------------------------------------------
+# PROTEIN DATABASE (30+ PROTEINS)
+# -----------------------------------------------------
+
+protein_list = [
+"COX2","AKT1","MAPK1","PI3K","mTOR","EGFR","JAK2","STAT3","NFkB",
+"TNF","IL6","BRAF","MEK1","ERK2","SRC","VEGFA","HIF1A","TP53",
+"CDK2","CDK4","GSK3B","PTEN","FOXO3","MYC","CASP3","CASP9",
+"MMP9","NOS3","CXCL8","TGFb1"
+]
+
+# -----------------------------------------------------
 # NETWORK PHARMACOLOGY MODULE
-# ----------------------------------------------------------------
+# -----------------------------------------------------
 
 if module == "Network Pharmacology Explorer":
 
     st.header("Network Pharmacology Explorer")
 
-    st.write("Select a drug to explore its predicted biological targets.")
+    drug = st.selectbox("Select Drug", drug_list)
 
-    drug = st.selectbox(
-        "Select Drug",
-        drug_list
-    )
+    # choose 20 proteins
+    selected_proteins = random.sample(protein_list, 20)
 
-    targets = [
-        "COX-2","NF-kB","AKT1","STAT3",
-        "MAPK1","EGFR","TNF-alpha",
-        "PI3K","mTOR","JAK2"
-    ]
+    nodes = ["Drug"] + selected_proteins
 
-    selected_targets = random.sample(targets, 4)
-
-    nodes = ["Drug"] + selected_targets
-
-    x_positions = [0] + [1]*len(selected_targets)
-    y_positions = [0] + list(np.linspace(-1,1,len(selected_targets)))
+    x = np.random.rand(len(nodes))
+    y = np.random.rand(len(nodes))
 
     fig = go.Figure()
 
-    # draw edges
-    for i in range(1,len(nodes)):
-
+    # Drug → protein connections
+    for i in range(1, len(nodes)):
         fig.add_trace(go.Scatter(
-            x=[x_positions[0], x_positions[i]],
-            y=[y_positions[0], y_positions[i]],
+            x=[x[0], x[i]],
+            y=[y[0], y[i]],
             mode="lines",
-            line=dict(width=2,color="gray"),
+            line=dict(width=2, color="gray"),
             showlegend=False
         ))
 
-    # draw nodes
+    # protein–protein interactions
+    for i in range(1, len(nodes)):
+        for j in range(i+1, len(nodes)):
+            if random.random() < 0.15:
+                fig.add_trace(go.Scatter(
+                    x=[x[i], x[j]],
+                    y=[y[i], y[j]],
+                    mode="lines",
+                    line=dict(width=1, color="lightgray"),
+                    showlegend=False
+                ))
+
     fig.add_trace(go.Scatter(
-        x=x_positions,
-        y=y_positions,
+        x=x,
+        y=y,
         mode="markers+text",
         text=nodes,
         textposition="top center",
-        marker=dict(size=25,color="blue")
+        marker=dict(size=20,color="blue")
     ))
 
     fig.update_layout(
-        title="Drug–Target Interaction Network",
+        title="Complex Drug–Protein Interaction Network",
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
-        height=500
+        height=600
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -106,73 +117,66 @@ if module == "Network Pharmacology Explorer":
     st.subheader("Predicted Target Proteins")
 
     df = pd.DataFrame({
-        "Drug":[drug]*len(selected_targets),
-        "Target Protein":selected_targets
+        "Drug":[drug]*len(selected_proteins),
+        "Protein":selected_proteins
     })
 
     st.table(df)
 
-# ----------------------------------------------------------------
+# -----------------------------------------------------
 # MOLECULAR DOCKING MODULE
-# ----------------------------------------------------------------
+# -----------------------------------------------------
 
 elif module == "Molecular Docking Simulator":
 
     st.header("Molecular Docking Simulator")
 
-    ligand = st.selectbox(
-        "Select Ligand (Drug Molecule)",
-        drug_list
-    )
+    ligand = st.selectbox("Select Ligand", drug_list)
 
-    proteins = [
-        "COX-2","EGFR","TNF-alpha","AKT1",
-        "MAPK1","PI3K","JAK2","mTOR"
-    ]
-
-    protein = st.selectbox(
-        "Select Target Protein",
-        proteins
-    )
+    protein = st.selectbox("Select Target Protein", protein_list)
 
     if st.button("Run Docking Simulation"):
 
         np.random.seed(len(ligand)+len(protein))
 
-        poses = 5
+        poses = 8
 
-        energies = -np.sort(np.random.uniform(5,10,poses))
+        energies = -np.sort(np.random.uniform(5,12,poses))
 
         docking_df = pd.DataFrame({
             "Pose":range(1,poses+1),
             "Binding Energy (kcal/mol)":energies
         })
 
-        st.subheader("Docking Results")
-
-        st.write("Ligand:", ligand)
-        st.write("Target Protein:", protein)
+        st.subheader("Docking Poses")
 
         st.table(docking_df)
 
-        interactions = [
-            "Hydrogen Bonds",
-            "Hydrophobic Interactions",
-            "Van der Waals Forces",
-            "Pi-Pi Stacking"
+        # realistic residue list
+        residues = [
+        "ARG120","TYR355","SER530","GLY526","LEU352","VAL349",
+        "ALA527","TRP387","HIS90","LYS83"
         ]
 
-        st.subheader("Predicted Interaction Types")
+        interaction_types = [
+        "Hydrogen Bond",
+        "Hydrophobic Interaction",
+        "Van der Waals",
+        "Pi-Pi Stacking",
+        "Salt Bridge",
+        "Pi-Cation Interaction"
+        ]
 
-        for i in interactions:
-            st.write("-", i)
+        interaction_data = []
 
-        residues = ["ARG120","TYR355","SER530","GLY526","LEU352"]
+        for r in residues:
 
-        interaction_df = pd.DataFrame({
-            "Residue":residues,
-            "Interaction Type":"Hydrogen Bond"
-        })
+            interaction_data.append({
+                "Residue": r,
+                "Interaction": random.choice(interaction_types)
+            })
+
+        interaction_df = pd.DataFrame(interaction_data)
 
         st.subheader("Key Binding Residues")
 
