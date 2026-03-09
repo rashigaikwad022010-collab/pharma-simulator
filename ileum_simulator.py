@@ -3,131 +3,132 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Virtual Pharmacology Lab", layout="wide")
+st.set_page_config(page_title="Drug Discovery Simulator", layout="wide")
 
-st.title("🧪 Virtual Pharmacology Lab Simulator")
+st.title("🧬 Pharmaceutical Drug Discovery Simulator")
 
-st.header("Organ Bath Dose Response Experiment")
+st.sidebar.title("Select Module")
 
-# Session state to store experiment data
-if "doses" not in st.session_state:
-    st.session_state.doses = []
-
-if "responses" not in st.session_state:
-    st.session_state.responses = []
-
-# Drug selection
-drug = st.selectbox(
-    "Select Drug",
-    ["Acetylcholine", "Acetylcholine + Atropine"]
+module = st.sidebar.radio(
+    "Modules",
+    [
+        "Network Pharmacology Explorer",
+        "Molecular Docking Simulator"
+    ]
 )
 
-# Dose selector
-dose = st.slider(
-    "Select Dose (µg)",
-    min_value=0.1,
-    max_value=10.0,
-    step=0.1
-)
+# ------------------------------------------------
+# NETWORK PHARMACOLOGY MODULE
+# ------------------------------------------------
 
-# Response simulation function
-def response_function(dose, drug):
-    
-    if drug == "Acetylcholine":
-        Emax = 100
-        EC50 = 2
-        
-    else:  # Acetylcholine + Atropine
-        Emax = 100
-        EC50 = 5
-        
-    response = (Emax * dose) / (EC50 + dose)
-    
-    noise = np.random.normal(0,2)
-    
-    return max(response + noise,0)
+if module == "Network Pharmacology Explorer":
 
-col1, col2 = st.columns(2)
+    st.header("Network Pharmacology Explorer")
 
-with col1:
+    st.write("Explore how a drug interacts with multiple biological targets.")
 
-    if st.button("Inject Dose"):
-        
-        resp = response_function(dose, drug)
+    drug = st.selectbox(
+        "Select Drug Compound",
+        ["Curcumin", "Resveratrol", "Quercetin", "Aspirin"]
+    )
 
-        st.session_state.doses.append(dose)
-        st.session_state.responses.append(resp)
+    targets = {
+        "Curcumin": ["NF-kB", "COX-2", "AKT1", "STAT3"],
+        "Resveratrol": ["SIRT1", "AMPK", "NF-kB"],
+        "Quercetin": ["PI3K", "MAPK", "TNF-alpha"],
+        "Aspirin": ["COX-1", "COX-2", "NF-kB"]
+    }
 
-        st.success(f"Injected {dose} µg of {drug}")
+    selected_targets = targets[drug]
 
-with col2:
+    st.subheader("Drug–Target Interaction Network")
 
-    if st.button("Wash Tissue"):
-        
-        st.session_state.doses = []
-        st.session_state.responses = []
-        
-        st.warning("Tissue washed. Experiment reset.")
+    nodes = ["Drug"] + selected_targets
 
-st.subheader("Organ Bath Drum Recording")
-
-if len(st.session_state.responses) > 0:
-
-    contraction = st.session_state.responses[-1]
-
-    x = np.linspace(0,10,200)
-    y = contraction + np.sin(x)*contraction*0.1
+    x = np.linspace(0, 1, len(nodes))
+    y = np.random.rand(len(nodes))
 
     fig = go.Figure()
 
     fig.add_trace(
-        go.Scatter(x=x, y=y, mode='lines', name="Contraction")
+        go.Scatter(
+            x=x,
+            y=y,
+            mode="markers+text",
+            text=nodes,
+            textposition="top center",
+            marker=dict(size=20)
+        )
     )
 
     fig.update_layout(
-        xaxis_title="Time",
-        yaxis_title="Tissue Contraction",
-        height=400
+        title="Drug Target Network",
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False)
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("Experimental Data")
-
-if len(st.session_state.doses) > 0:
+    st.subheader("Target Proteins")
 
     df = pd.DataFrame({
-        "Dose (µg)": st.session_state.doses,
-        "Response": st.session_state.responses
+        "Drug": [drug]*len(selected_targets),
+        "Target Protein": selected_targets
     })
 
-    st.dataframe(df)
+    st.table(df)
 
-st.subheader("Log Dose Response Curve")
 
-if len(st.session_state.doses) > 1:
+# ------------------------------------------------
+# MOLECULAR DOCKING MODULE
+# ------------------------------------------------
 
-    log_dose = np.log10(st.session_state.doses)
+elif module == "Molecular Docking Simulator":
 
-    fig2 = go.Figure()
+    st.header("Molecular Docking Simulator")
 
-    fig2.add_trace(
-        go.Scatter(
-            x=log_dose,
-            y=st.session_state.responses,
-            mode="lines+markers",
-            name="Dose Response"
-        )
+    st.write("Simulate ligand binding with target proteins.")
+
+    ligand = st.selectbox(
+        "Select Ligand",
+        ["Curcumin", "Ibuprofen", "Quercetin", "Resveratrol"]
     )
 
-    fig2.update_layout(
-        xaxis_title="Log Dose",
-        yaxis_title="Response",
-        height=400
+    protein = st.selectbox(
+        "Select Target Protein",
+        ["COX-2", "EGFR", "TNF-alpha", "AKT1"]
     )
 
-    st.plotly_chart(fig2, use_container_width=True)
+    if st.button("Run Docking Simulation"):
 
-st.markdown("---")
+        np.random.seed(len(ligand)+len(protein))
 
-st.markdown("Author: **Rashi Gaikwad**")
+        binding_energy = -np.random.uniform(5,10)
+
+        interactions = [
+            "Hydrogen Bonds",
+            "Hydrophobic Interactions",
+            "Van der Waals Forces",
+            "Pi-Pi Stacking"
+        ]
+
+        st.subheader("Docking Results")
+
+        st.success(f"Binding Energy: {round(binding_energy,2)} kcal/mol")
+
+        st.write("Ligand:", ligand)
+        st.write("Protein:", protein)
+
+        st.subheader("Predicted Interactions")
+
+        for i in interactions:
+            st.write("-", i)
+
+        residues = ["ARG120", "TYR355", "SER530", "GLY526"]
+
+        df = pd.DataFrame({
+            "Protein Residue": residues,
+            "Interaction Type": ["Hydrogen Bond"]*4
+        })
+
+        st.table(df)
