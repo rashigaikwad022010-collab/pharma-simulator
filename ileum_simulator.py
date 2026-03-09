@@ -192,38 +192,71 @@ elif module == "Dose Response Simulator":
     st.plotly_chart(fig, use_container_width=True)
 
 # -------------------------------------------------
-# 5. PROTEIN PATHWAY
+# -------------------------------------------------
+# 5. PROTEIN PATHWAY SIMULATOR (THE IMPACT)
 # -------------------------------------------------
 elif module == "Protein Pathway Simulator":
-    st.header("Protein Pathway Network")
-    drug = st.text_input("Drug", "Aspirin")
-    proteins = st.multiselect("Select Proteins", protein_list, default=["COX2", "TNF"])
+    st.header("⚡ Pathway Signal Cascade Simulator")
+    st.info("After finding the dose, we simulate how the signal 'dies out' across the protein chain.")
 
-    if st.button("Generate Network"):
-        G = nx.Graph()
-        G.add_node(drug)
-        for p in proteins:
-            G.add_node(p)
-            G.add_edge(drug, p)
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        drug = st.text_input("Lead Compound", "Aspirin")
+        base_inhibition = st.slider("Initial Inhibition at Source (%)", 10, 100, 80)
+        pathway_depth = st.slider("Pathway Depth (Steps)", 2, 6, 4)
+        
+    # Logic: Signal decay. Each step in the pathway loses some "power"
+    steps = [f"Step {i+1}" for i in range(pathway_depth)]
+    signal = [base_inhibition * (0.8**i) for i in range(pathway_depth)] # 20% decay per step
+
+    with col2:
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=steps, y=signal, marker_color='firebrick'))
+        fig.update_layout(title="Signal Inhibition Cascade", yaxis_title="Inhibition Strength (%)", template="plotly_white")
+        st.plotly_chart(fig, use_container_width=True)
+
+    if st.button("Generate Pathway Map"):
+        G = nx.DiGraph() # Directed graph for flow
+        G.add_node(drug, color='red')
+        prev = drug
+        for p in random.sample(protein_list, pathway_depth):
+            G.add_node(p, color='blue')
+            G.add_edge(prev, p)
+            prev = p
+        
         fig, ax = plt.subplots()
-        nx.draw(G, with_labels=True, node_color="lightblue", node_size=2500, font_weight='bold')
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=3000, arrowsize=20)
         st.pyplot(fig)
 
 # -------------------------------------------------
-# 6. VIRTUAL SCREENING
+# 6. VIRTUAL DRUG SCREENING (THE DISCOVERY)
 # -------------------------------------------------
 elif module == "Virtual Drug Screening":
-    st.header("Virtual Drug Screening")
-    if st.button("Start Screening"):
-        drugs = random.sample(drug_list, 10)
-        prots = random.sample(protein_list, 5)
+    st.header("🧪 Advanced Virtual Screening & ADME")
+    st.write("Screening for Binding Affinity + Drug-Likeness (Lipinski's Rules)")
+
+    if st.button("🚀 Run High-Throughput Screen"):
+        test_drugs = random.sample(drug_list, 10)
+        target = random.choice(protein_list)
+        
         results = []
-        for d in drugs:
-            for p in prots:
-                energy = round(random.uniform(-10.5, -4.0), 2)
-                results.append([d, p, energy])
-        df = pd.DataFrame(results, columns=["Drug", "Protein", "Binding Energy"])
-        st.dataframe(df.style.background_gradient(subset=['Binding Energy'], cmap='RdYlGn_r'))
-        best = df.sort_values("Binding Energy").head(5)
-        st.subheader("Top Binding Results (Leads)")
-        st.dataframe(best)
+        for d in test_drugs:
+            energy = round(random.uniform(-11.0, -4.0), 2)
+            # Creative Approach: Add "Drug-Likeness" scores
+            mw = random.randint(200, 600) # Molecular Weight
+            logp = round(random.uniform(1, 6), 1) # Lipophilicity
+            
+            # Check Lipinski's Rule (Simplified)
+            pass_rules = "✅ Pass" if mw < 500 and logp < 5 else "❌ Fail"
+            
+            results.append([d, target, energy, mw, logp, pass_rules])
+
+        df = pd.DataFrame(results, columns=["Drug", "Target", "Energy", "Mol. Weight", "LogP", "Lipinski Status"])
+        
+        # Highlight the best candidates that also pass the rules
+        st.subheader(f"Screening Results for {target}")
+        st.dataframe(df.style.apply(lambda x: ['background-color: lightgreen' if x['Lipinski Status'] == "✅ Pass" and x['Energy'] < -8 else '' for i in x], axis=1))
+        
+        st.success("Analysis Complete: Green rows represent 'Strong Binders' that are also safe for human absorption.")
