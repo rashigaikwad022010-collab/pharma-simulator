@@ -40,16 +40,23 @@ protein_categories = {
 all_drugs = [item for sublist in drug_db.values() for item in sublist]
 all_proteins = list(protein_categories.keys())
 
-# --- INITIALIZE SESSION STATE ---
+# --- INITIALIZE SESSION STATE (FIXED FOR VALUEERROR) ---
 if 'selected_energy' not in st.session_state: st.session_state.selected_energy = -7.5
-if 'selected_drug' not in st.session_state: st.session_state.selected_drug = "Atorvastatin"
-if 'selected_target' not in st.session_state: st.session_state.selected_target = "CASP3"
+if 'selected_drug' not in st.session_state or st.session_state.selected_drug not in all_drugs: 
+    st.session_state.selected_drug = all_drugs[0]
+if 'selected_target' not in st.session_state or st.session_state.selected_target not in all_proteins: 
+    st.session_state.selected_target = all_proteins[0]
 if 'selected_tox' not in st.session_state: st.session_state.selected_tox = 15.0
 
 # --- SIDEBAR & MANUAL CONTROL ---
 st.sidebar.header("🕹️ Manual Research Controls")
-st.session_state.selected_drug = st.sidebar.selectbox("Choose Drug:", all_drugs, index=all_drugs.index(st.session_state.selected_drug))
-st.session_state.selected_target = st.sidebar.selectbox("Choose Target:", all_proteins, index=all_proteins.index(st.session_state.selected_target))
+
+# Fixed index logic to prevent ValueErrors
+drug_idx = all_drugs.index(st.session_state.selected_drug)
+prot_idx = all_proteins.index(st.session_state.selected_target)
+
+st.session_state.selected_drug = st.sidebar.selectbox("Choose Drug:", all_drugs, index=drug_idx)
+st.session_state.selected_target = st.sidebar.selectbox("Choose Target:", all_proteins, index=prot_idx)
 st.session_state.selected_energy = st.sidebar.slider("Binding Energy (kcal/mol)", -11.5, -4.0, st.session_state.selected_energy)
 st.session_state.selected_tox = st.sidebar.slider("Toxicity Threshold (%)", 5.0, 90.0, st.session_state.selected_tox)
 
@@ -83,7 +90,8 @@ elif module == "Dose Response Simulator":
     fig.update_layout(xaxis_type="log", title="Dose-Response Curve", yaxis_title="Effect %", template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
 
-    st.info(f"### 📋 Graph Explanation: This is a **Sigmoid Curve**. It shows that {st.session_state.selected_drug} becomes more effective as the dose increases until it hits a plateau. The red line is your safety limit.")
+    st.info(f"### 📋 Graph Explanation")
+    st.write(f"This is a **Dose-Response Curve**. It shows how the effectiveness of **{st.session_state.selected_drug}** changes as you increase the concentration. The Red line is your **Toxicity Limit**. If the curve reaches that line, the drug is no longer safe.")
     
 
 # -------------------------------------------------
@@ -95,16 +103,18 @@ elif module == "Protein Pathway Simulator":
     steps = [st.session_state.selected_target, "Signal Relay", "Kinase Activation", "Transcription", "Cell Response"]
     signal = [inhibition * (0.8**i) for i in range(len(steps))]
     
-    st.plotly_chart(go.Figure(go.Bar(x=steps, y=signal, marker_color='firebrick')), use_container_width=True)
-    st.info("### 📉 Bar Chart Explanation: This shows **Signal Attenuation**. Each bar is a protein in a chain. The drug hits the first protein, and the 'power' of that message fades as it moves through the cell.")
-    
+    st.plotly_chart(go.Figure(go.Bar(x=steps, y=signal, marker_color='firebrick', text=[f"{round(s)}%" for s in signal])), use_container_width=True)
+    st.info("### 📉 Bar Chart Explanation")
+    st.write("This measures **Signal Attenuation**. Each bar represents a protein in a chain. The drug hits the first protein, and the 'power' of that message fades as it moves through the cell. A final bar above 30% usually indicates clinical success.")
+
     net = Network(height="400px", width="100%", bgcolor="#ffffff", directed=True)
     for i in range(len(steps)):
         net.add_node(steps[i], label=f"{steps[i]}\n{round(signal[i])}%", color="#ff4b4b" if i==0 else "#1c83e1")
         if i > 0: net.add_edge(steps[i-1], steps[i])
     net.save_graph("pathway.html")
     with open("pathway.html", 'r') as f: components.html(f.read(), height=450)
-    st.info("### 🕸️ Flowchart Explanation: This is a **Signaling Cascade**. It maps how blocking the first protein (Red) ripples through the cell's internal communication network.")
+    st.info("### 🕸️ Flowchart Explanation")
+    st.write(f"This maps the **Domino Effect**. By blocking **{st.session_state.selected_target}**, you trigger a chain reaction that stops a disease signal from reaching the nucleus.")
     
 
 # -------------------------------------------------
@@ -119,17 +129,19 @@ elif module == "Network Pharmacology Explorer":
         net.add_edge(st.session_state.selected_drug, t)
     net.save_graph("network.html")
     with open("network.html", 'r') as f: components.html(f.read(), height=550)
-    st.info("### 🕸️ Diagram Explanation: This shows that drugs aren't perfect. While targeting one protein, they often 'stick' to others, which can cause side effects or hidden benefits.")
+    st.info("### 🕸️ Diagram Explanation")
+    st.write("Real drugs are 'dirty'—they hit their main target but also bind to other proteins. This map shows potential side effects or secondary benefits.")
 
 # -------------------------------------------------
-# 5. MOLECULAR DOCKING (THE ADDED PORTION)
+# 5. MOLECULAR DOCKING SIMULATOR
 # -------------------------------------------------
 elif module == "Molecular Docking Simulator":
-    st.header("🧩 Molecular Docking Analysis")
-    st.write(f"Analyzing the geometric fit: **{st.session_state.selected_drug}** into the binding pocket of **{st.session_state.selected_target}**.")
+    st.header(f"🧩 Molecular Docking: {st.session_state.selected_drug} + {st.session_state.selected_target}")
+    st.write(f"Simulating the physical fit in the active site.")
     
     poses = [[i, round(st.session_state.selected_energy + random.uniform(-0.5, 0.5), 2), random.choice(["H-Bond", "Hydrophobic", "Ionic"])] for i in range(1, 6)]
     df_dock = pd.DataFrame(poses, columns=["Pose ID", "Binding Affinity (kcal/mol)", "Primary Interaction"])
     st.table(df_dock)
     
-    st.info(f"### 🧩 Results Explanation: This table shows the **Thermodynamic Stability** of the drug inside the protein. **Pose 1** is the most stable. A more negative 'kcal/mol' value means the drug and protein fit together like a perfect lock and key.")
+    st.info(f"### 🧩 Results Explanation")
+    st.write(f"Molecular Docking predicts how well a drug molecule 'fits' into a protein. **Pose 1** has an energy of **{st.session_state.selected_energy} kcal/mol**. A more negative number means the drug is stickier and more likely to work.")
