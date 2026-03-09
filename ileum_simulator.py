@@ -72,35 +72,37 @@ if module == "Virtual Screening":
         st.table(st.session_state.screen_df)
 
 # -------------------------------------------------
-# 2. DOSE-RESPONSE SIMULATOR
+# 2. DOSE-RESPONSE ANALYSIS
 # -------------------------------------------------
 elif module == "Dose-Response Analysis":
     st.header(f"📈 Pharmacodynamic Profile: {st.session_state.selected_drug}")
     
     ec50 = np.interp(st.session_state.selected_energy, [-12, -4], [0.5, 150])
     hill_coeff = 2.4 if protein_categories[st.session_state.selected_target] == "Receptor" else 1.2
+    emax = 100.0
     
     conc = np.logspace(-1, 4, 100)
-    response = (100 * (conc**hill_coeff)) / ( (ec50**hill_coeff) + (conc**hill_coeff) )
+    response = (emax * (conc**hill_coeff)) / ( (ec50**hill_coeff) + (conc**hill_coeff) )
     
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=conc, y=response, name="Efficacy Curve", line=dict(color='#007bff', width=4)))
+    fig.add_trace(go.Scatter(x=conc, y=response, name="Response Curve", line=dict(color='#007bff', width=4)))
     fig.add_hline(y=dynamic_tox, line_dash="dash", line_color="red", annotation_text="Toxicity Threshold")
-    fig.update_layout(xaxis_type="log", title="Log-Dose Response Graph", xaxis_title="Concentration (nM)", yaxis_title="Biological Response (%)")
+    fig.update_layout(xaxis_type="log", title="Log-Dose Response Graph", xaxis_title="Concentration (nM)", yaxis_title="Response (%)")
     st.plotly_chart(fig, use_container_width=True)
-    
 
-    st.markdown(f"""
-    <div class="explanation-box">
-        <h3>📊 Result Analysis: The Dose-Response Graph</h3>
-        This graph illustrates the <b>relationship between drug concentration and biological effect</b>. 
-        <ul>
-            <li><b>Sigmoidal Curve:</b> The "S" shape shows that the drug effect is dose-dependent. Low doses have no effect, while high doses reach a saturation point (Emax).</li>
-            <li><b>EC50 ({round(ec50, 2)} nM):</b> This is the "Half Maximal Effective Concentration." It measures <b>Potency</b>. The lower the EC50, the less drug you need to achieve a result.</li>
-            <li><b>Therapeutic Index:</b> The distance between the blue curve and the red line represents the <b>Safety Margin</b>. If the blue line crosses the red line at a low dose, the drug is dangerous.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    st.subheader("📊 Dose-Response Calculation Table")
+    metrics = {
+        "Parameter": ["Calculated EC50", "Hill Slope (n)", "Max Efficacy (Emax)", "Toxicity Limit"],
+        "Value": [f"{round(ec50, 2)} nM", hill_coeff, f"{emax}%", f"{dynamic_tox}%"],
+        "Interpretation": [
+            "Potency: Concentration needed for 50% effect. Smaller is better.",
+            "Cooperativity: Steepness of the curve. Higher values mean a sharp 'on/off' effect.",
+            "Capacity: The highest level of biological effect the drug can achieve.",
+            "Safety Ceiling: The response level where adverse events are predicted."
+        ]
+    }
+    st.table(pd.DataFrame(metrics))
+    
 
 # -------------------------------------------------
 # 3. PATHWAY & BAR CHART
@@ -117,12 +119,12 @@ elif module == "Pathway & Signal Analysis":
     
     st.markdown(f"""
     <div class="explanation-box">
-        <h3>📉 Result Analysis: Signal Attenuation</h3>
-        This chart measures <b>Pharmacological Momentum</b>. 
+        <h3>📉 Bar Chart Result Interpretation</h3>
+        This chart displays <b>Pharmacological Momentum</b> across five biological stages:
         <ul>
-            <li><b>Initial Inhibition ({decay[0]}%):</b> This is how strongly the drug stops the first protein.</li>
-            <li><b>Signal Decay:</b> Biological systems are not perfect. Messages weaken as they travel through the cell. We simulate a 20% loss at every junction.</li>
-            <li><b>Biological Relevance:</b> If the last bar (Cell Fate) is too low, the drug is "biologically silent"—it binds the target but fails to change the cell's behavior.</li>
+            <li><b>Initial Binding:</b> At the start, <b>{st.session_state.selected_drug}</b> blocks <b>{decay[0]}%</b> of the <b>{st.session_state.selected_target}</b> enzyme.</li>
+            <li><b>Intermediate Decay:</b> By the <b>{steps[2]}</b> stage, only <b>{decay[2]}%</b> of that inhibitory signal remains.</li>
+            <li><b>Net Physiological Impact:</b> The final <b>{decay[4]}%</b> shows the actual change in the patient's cell fate. A value below 30% indicates the drug's effect is lost before it can treat the disease.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -136,37 +138,40 @@ elif module == "Pathway & Signal Analysis":
     with open("path.html", 'r') as f: components.html(f.read(), height=450)
     
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="explanation-box">
-        <h3>🕸️ Result Analysis: The Signaling Flowchart</h3>
-        This represents the <b>Signaling Cascade</b> (the domino effect). 
+        <h3>🕸️ Flowchart Result Interpretation</h3>
+        This diagram maps the <b>Signaling Chain Reaction</b> within the cell:
         <ul>
-            <li><b>Red Node:</b> The primary receptor where the drug binds.</li>
-            <li><b>Arrows:</b> Represent the flow of information. By "locking" the red node, we stop the signal from reaching the nucleus, effectively turning off a disease process.</li>
+            <li><b>Red Master Node ({decay[0]}%):</b> This represents the direct docking site. Because it is turned off at {decay[0]}%, the biological 'highway' is blocked.</li>
+            <li><b>Information Flow:</b> The arrows show how the signal travels. The Blue nodes show the <b>domino effect</b>; because the first node is inhibited, the subsequent proteins are 'starved' of their activating signal.</li>
+            <li><b>Outcome:</b> The final node at <b>{decay[4]}%</b> is the successful prevention of a disease response.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
 
 # -------------------------------------------------
-# 4. NETWORK PHARMACOLOGY (MESH OF STRINGS)
+# 4. NETWORK PHARMACOLOGY EXPLORER
 # -------------------------------------------------
 elif module == "Network Pharmacology Explorer":
     st.header(f"🕸️ Polypharmacology Mesh: {st.session_state.selected_drug}")
-    
     net = Network(height="550px", width="100%", bgcolor="#ffffff", font_color="black")
+    
+    # Core Drug Node
     net.add_node(st.session_state.selected_drug, label=st.session_state.selected_drug, color="#ff4b4b", size=40)
     
-    # Generate a mesh of connected protein targets
-    other_proteins = ["AKT1", "STAT3", "TNF", "MAPK", "IL-6", "NF-kB", "mTOR"]
-    for p in other_proteins:
+    # Primary Targets
+    mesh_targets = ["AKT1", "STAT3", "TNF", "MAPK", "IL-6", "mTOR", "NF-kB"]
+    for p in mesh_targets:
         net.add_node(p, label=p, color="#1c83e1", size=20)
-        net.add_edge(st.session_state.selected_drug, p, width=random.uniform(1, 5))
-        
-        # Add secondary connections (The Mesh)
-        secondary = random.sample(other_proteins, 2)
-        for s in secondary:
-            if s != p:
-                net.add_edge(p, s, color="#dddddd", width=1)
+        net.add_edge(st.session_state.selected_drug, p, width=2)
+    
+    # Safe Secondary Connections (Mesh Logic)
+    for i in range(len(mesh_targets)):
+        target_a = mesh_targets[i]
+        # Connect to the next target in the list to form a loop/mesh
+        target_b = mesh_targets[(i + 1) % len(mesh_targets)]
+        net.add_edge(target_a, target_b, color="#dddddd", width=1)
                 
     net.toggle_physics(True)
     net.save_graph("mesh.html")
@@ -175,18 +180,18 @@ elif module == "Network Pharmacology Explorer":
 
     st.markdown("""
     <div class="explanation-box">
-        <h3>🕸️ Result Analysis: Polypharmacology Mesh</h3>
-        This "Mesh of Strings" represents <b>Network Pharmacology</b>. 
+        <h3>🕸️ Mesh Network Interpretation</h3>
+        This "Mesh of Strings" represents the <b>Interactome</b>:
         <ul>
-            <li><b>Primary Drug (Red):</b> Shows all proteins the drug interacts with. </li>
-            <li><b>Mesh Connections (Grey):</b> These are protein-protein interactions. It proves that the cell is an interconnected web. </li>
-            <li><b>Off-Target Effects:</b> If the drug binds to many proteins (high connectivity), it might have more side effects but could be more effective for complex diseases like cancer.</li>
+            <li><b>Central Lead (Red):</b> Your drug molecule.</li>
+            <li><b>Connected Targets (Blue):</b> The many proteins your drug hits. In modern medicine, we want "Multi-Target" drugs for complex diseases.</li>
+            <li><b>Inter-Target Mesh (Grey):</b> Represents Protein-Protein Interactions (PPI). This shows that your drug doesn't just hit one target; it disrupts an entire cellular web.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
 
 # -------------------------------------------------
-# 5. MOLECULAR DOCKING (DETAILED INTERACTIONS)
+# 5. MOLECULAR DOCKING
 # -------------------------------------------------
 elif module == "Molecular Docking":
     st.header("🧩 In-Silico Molecular Docking")
@@ -199,11 +204,11 @@ elif module == "Molecular Docking":
 
     st.markdown(f"""
     <div class="explanation-box">
-        <h3>🧩 Result Analysis: Molecular Docking</h3>
-        This table displays the <b>Binding Modes</b>. 
+        <h3>🧩 Docking Result Interpretation</h3>
+        This data predicts the <b>Lock-and-Key fit</b>:
         <ul>
-            <li><b>H-Bonding:</b> This is the strongest type of "handshake" between a drug and a protein. It provides high specificity.</li>
-            <li><b>Affinity:</b> The -{abs(st.session_state.selected_energy)} kcal/mol score tells us how much energy is released when the drug binds. A lower (more negative) number means a more stable and powerful drug.</li>
+            <li><b>Pose 1:</b> The most stable conformation. The affinity of <b>{poses[0][1]} kcal/mol</b> indicates a high likelihood of spontaneous binding.</li>
+            <li><b>Interaction Type:</b> {poses[0][2]} is the dominant force holding the drug in the protein pocket. H-bonding is usually the sign of a very specific and effective drug.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -227,7 +232,7 @@ elif module == "Project Conclusion":
     st.markdown(f"""
     <div class="conclusion-card {v_class}">
         <h2 style="text-align: center;">VERDICT: {verdict}</h2>
-        <p style="text-align: center; font-size: 1.2em;">Project Status for <b>{st.session_state.selected_drug}</b></p>
+        <p style="text-align: center; font-size: 1.2em;">Based on potency, safety, and signaling efficacy for <b>{st.session_state.selected_drug}</b>.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -235,9 +240,9 @@ elif module == "Project Conclusion":
     <div class="explanation-box">
         <h3>📝 Detailed Clinical Rationale</h3>
         <ul>
-            <li><b>Binding Profile:</b> Energy of {st.session_state.selected_energy} kcal/mol suggests {'strong' if is_potent else 'weak'} affinity.</li>
+            <li><b>Binding Profile:</b> Energy of {st.session_state.selected_energy} kcal/mol shows {'strong' if is_potent else 'weak'} affinity.</li>
             <li><b>Safety Rating:</b> Toxicity threshold of {dynamic_tox}% is {'within' if is_safe else 'outside'} acceptable limits.</li>
-            <li><b>Efficacy Conclusion:</b> A final signal of {round(final_signal,1)}% proves the drug {'can' if is_effective else 'cannot'} effectively alter the cell's fate.</li>
+            <li><b>Efficacy Conclusion:</b> A final signal of {round(final_signal,1)}% proves the drug {'can' if is_effective else 'cannot'} effectively alter the cellular outcome.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
