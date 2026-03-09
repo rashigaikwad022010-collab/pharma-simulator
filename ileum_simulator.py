@@ -267,25 +267,38 @@ elif module == "Molecular Docking":
 # -------------------------------------------------
 # 7. PROJECT CONCLUSION
 # -------------------------------------------------
+
 elif module == "Project Conclusion":
     st.header("🏁 Clinical Trial Readiness Verdict")
+    
+    # Real-world clinical calibration:
+    # Most FDA-approved drugs sit between -7.0 and -10.0 kcal/mol.
+    # A final pathway signal of >15% is often enough for clinical significance.
     inhibition = np.interp(binding_energy, [-12, -4], [98, 15])
     final_signal = inhibition * (0.8**4)
     
-    is_potent, is_safe, is_effective = abs(binding_energy) > 7.5, dynamic_tox < 75.0, final_signal > 30.0
-    verdict = "GO" if (is_potent and is_safe and is_effective) else "NO-GO"
+    # CLINICAL DATA THRESHOLDS
+    is_potent = abs(binding_energy) >= 6.5  # Standard threshold for lead compounds
+    is_safe = dynamic_tox < 85.0            # Real-world drugs have side effects but are manageable
+    is_effective = final_signal > 12.0      # Clinical efficacy often starts at lower net signal
+    
+    # Logic: If it meets 2 out of 3 major clinical markers, it's usually a GO for further study
+    verdict_score = sum([is_potent, is_safe, is_effective])
+    verdict = "GO" if verdict_score >= 2 else "NO-GO"
     
     st.markdown(f"""
     <div class="conclusion-card {'go-signal' if verdict == 'GO' else 'nogo-signal'}">
         <h2 style="text-align: center;">VERDICT: {verdict}</h2>
-        <p style="text-align: center;">Drug Analysis Summary for <b>{selected_drug}</b></p>
+        <p style="text-align: center;">Clinical Data Summary for <b>{selected_drug}</b></p>
     </div>
     <div class="explanation-box">
         <h3>📝 Detailed Clinical Rationale</h3>
         <ul>
-            <li><b>Binding Profile:</b> {binding_energy} kcal/mol ({'Potent' if is_potent else 'Weak'}).</li>
-            <li><b>Safety Rating:</b> Toxicity threshold {dynamic_tox}% ({'Safe' if is_safe else 'Unsafe'}).</li>
-            <li><b>Efficacy:</b> Final signal {round(final_signal,1)}% ({'Effective' if is_effective else 'Low Impact'}).</li>
+            <li><b>Binding Profile:</b> {binding_energy} kcal/mol ({'Clinically Potent' if is_potent else 'Moderate Affinity'}).</li>
+            <li><b>Safety Rating:</b> Toxicity threshold {dynamic_tox}% ({'Acceptable Risk Profile' if is_safe else 'High Toxicological Concern'}).</li>
+            <li><b>Net Efficacy:</b> Final physiological signal {round(final_signal,1)}% ({'Therapeutically Effective' if is_effective else 'Sub-therapeutic Level'}).</li>
         </ul>
+        <hr>
+        <p><i>Note: Verdict based on comparative clinical benchmarks and binding thermodynamics.</i></p>
     </div>
     """, unsafe_allow_html=True)
