@@ -31,22 +31,28 @@ st.markdown("""
 
 st.title("🧬 Advanced Pharmaceutical Research & Docking Pipeline")
 
-# --- DATABASE ---
+# --- EXPANDED DATABASE (~80 Drugs) ---
 drug_db = {
-    "Statins": ["Atorvastatin", "Simvastatin", "Rosuvastatin"],
-    "Antihistamines": ["Loratadine", "Cetirizine", "Diphenhydramine"],
-    "NSAIDs": ["Aspirin", "Ibuprofen", "Naproxen"],
-    "Antidiabetics": ["Metformin", "Glipizide"],
+    "Cardiovascular": ["Atorvastatin", "Amlodipine", "Lisinopril", "Metoprolol", "Warfarin", "Digoxin", "Clopidogrel", "Losartan", "Simvastatin", "Valsartan", "Ezetimibe", "Spironolactone", "Furosemide", "Ramipril", "Hydralazine"],
+    "Analgesics/NSAIDs": ["Aspirin", "Ibuprofen", "Naproxen", "Celecoxib", "Diclofenac", "Ketorolac", "Indomethacin", "Morphine", "Oxycodone", "Tramadol", "Acetaminophen", "Etodolac", "Meloxicam", "Fentanyl"],
+    "Antidiabetics": ["Metformin", "Glipizide", "Glyburide", "Sitagliptin", "Pioglitazone", "Empagliflozin", "Liraglutide", "Insulin Glargine", "Acarbose", "Repaglinide", "Canagliflozin"],
+    "Neurological": ["Sertraline", "Escitalopram", "Fluoxetine", "Donepezil", "Levodopa", "Gabapentin", "Pregabalin", "Diazepam", "Alprazolam", "Zolpidem", "Quetiapine", "Risperidone", "Lithium", "Venlafaxine"],
+    "Antibiotics/Antivirals": ["Amoxicillin", "Azithromycin", "Ciprofloxacin", "Doxycycline", "Cephalexin", "Acyclovir", "Oseltamivir", "Ritonavir", "Remdesivir", "Metronidazole", "Clarithromycin", "Levofloxacin"],
+    "Respiratory/Allergy": ["Albuterol", "Fluticasone", "Montelukast", "Loratadine", "Cetirizine", "Diphenhydramine", "Fexofenadine", "Prednisone", "Budesonide", "Tiotropium"],
+    "Gastrointestinal": ["Omeprazole", "Ranitidine", "Famotidine", "Esomeprazole", "Pantoprazole", "Lansoprazole", "Ondansetron", "Metoclopramide", "Loperamide"],
+    "Oncology/Immunology": ["Methotrexate", "Tamoxifen", "Imatinib", "Pembrolizumab", "Cyclosporine", "Adalimumab", "Infliximab", "Rituximab", "Trastuzumab", "Anastrozole"]
 }
+
 protein_categories = {
     "CASP3": "Enzyme (Apoptosis)", "H1-Receptor": "Receptor", 
     "HMG-CoA": "Enzyme", "COX2": "Enzyme", "EGFR": "Receptor", 
+    "HER2": "Receptor", "ACE": "Enzyme", "PDE5": "Enzyme", "TNF-alpha": "Cytokine"
 }
-all_drugs = [d for sub in drug_db.values() for d in sub]
+
+all_drugs = sorted([d for sub in drug_db.values() for d in sub])
 all_proteins = list(protein_categories.keys())
 
 # --- INITIALIZE SESSION STATE ---
-if 'selected_energy' not in st.session_state: st.session_state.selected_energy = -7.5
 if 'selected_drug' not in st.session_state: st.session_state.selected_drug = "Atorvastatin"
 if 'selected_target' not in st.session_state: st.session_state.selected_target = "CASP3"
 
@@ -54,10 +60,17 @@ if 'selected_target' not in st.session_state: st.session_state.selected_target =
 st.sidebar.header("🔬 Research Parameters")
 st.session_state.selected_drug = st.sidebar.selectbox("Lead Compound:", all_drugs, index=all_drugs.index(st.session_state.selected_drug))
 st.session_state.selected_target = st.sidebar.selectbox("Target Protein:", all_proteins, index=all_proteins.index(st.session_state.selected_target))
-st.session_state.selected_energy = st.sidebar.slider("Binding Affinity (kcal/mol)", -12.0, -4.0, st.session_state.selected_energy)
 
-# DYNAMIC TOXICITY THRESHOLD
-dynamic_tox = round(abs(st.session_state.selected_energy) * 8.5, 1)
+# USE SEED SO RESULTS ARE UNIQUE PER DRUG BUT REPRODUCIBLE
+random.seed(st.session_state.selected_drug)
+binding_energy = round(random.uniform(-11.5, -4.5), 1)
+st.sidebar.info(f"Natural Affinity: {binding_energy} kcal/mol")
+
+# Dynamic Metrics
+overlap_val = random.randint(35, 75)
+exclusive_drug = random.randint(40, 90)
+exclusive_disease = random.randint(15, 40)
+dynamic_tox = round(abs(binding_energy) * random.uniform(7.0, 9.5), 1)
 
 module = st.sidebar.selectbox("Pipeline Stage:", 
     ["Virtual Screening", "Venn Diagram Analysis", "Dose-Response Analysis", "Pathway & Signal Analysis", "Network Pharmacology Explorer", "Molecular Docking", "Project Conclusion"])
@@ -69,7 +82,8 @@ if module == "Virtual Screening":
     st.header("🧪 High-Throughput Screening (HTS)")
     if st.button("🚀 Execute Library Screen"):
         results = []
-        for d in all_drugs:
+        screen_list = random.sample(all_drugs, 15)
+        for d in screen_list:
             energy = round(random.uniform(-11, -4), 2)
             tox = round(abs(energy) * random.uniform(5, 10), 1)
             status = "✅ SAFE" if tox < 65 else "⚠️ UNSAFE"
@@ -86,22 +100,22 @@ elif module == "Venn Diagram Analysis":
     st.header(f"📊 Target Overlap Analysis: {st.session_state.selected_drug}")
     
     if VENN_AVAILABLE:
-        # Values based on your uploaded images: 62 exclusive, 49 intersection, 33 exclusive
         fig, ax = plt.subplots(figsize=(8, 5))
-        venn2(subsets=(62, 33, 49), set_labels=(f'Predicted Targets\nof {st.session_state.selected_drug}', 'Disease-Associated\nProteins'))
+        venn2(subsets=(exclusive_drug, exclusive_disease, overlap_val), 
+              set_labels=(f'Predicted Targets\nof {st.session_state.selected_drug}', 'Disease-Associated\nProteins'))
         st.pyplot(fig)
         
     else:
-        st.error("Error: 'matplotlib-venn' library not found. Please run 'pip install matplotlib-venn'.")
+        st.error("Error: 'matplotlib-venn' library not found.")
 
     st.markdown(f"""
     <div class="explanation-box">
         <h3>🔍 Venn Result Interpretation</h3>
         This diagram identifies the <b>Therapeutic Bioactives</b> for your research:
         <ul>
-            <li><b>Total Overlap (49):</b> These are the high-priority targets. They represent proteins that are both predicted to bind with {st.session_state.selected_drug} and are scientifically proven to be involved in the disease.</li>
-            <li><b>Exclusive Drug Targets (62):</b> These represent potential "off-target" interactions which might cause secondary side effects.</li>
-            <li><b>Relevance:</b> Finding 49 common targets is a statistically significant result, suggesting this drug has strong multi-target potential for treating the condition.</li>
+            <li><b>Total Overlap ({overlap_val}):</b> These are the high-priority targets. They represent proteins that are both predicted to bind with {st.session_state.selected_drug} and are scientifically proven to be involved in the disease.</li>
+            <li><b>Exclusive Drug Targets ({exclusive_drug}):</b> These represent potential "off-target" interactions which might cause secondary side effects.</li>
+            <li><b>Relevance:</b> Finding {overlap_val} common targets is a statistically significant result, suggesting this drug has strong multi-target potential.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -112,24 +126,23 @@ elif module == "Venn Diagram Analysis":
 elif module == "Dose-Response Analysis":
     st.header(f"📈 Pharmacodynamic Profile: {st.session_state.selected_drug}")
     
-    ec50 = np.interp(st.session_state.selected_energy, [-12, -4], [0.5, 150])
-    hill_coeff = 2.4 if protein_categories[st.session_state.selected_target] == "Receptor" else 1.2
-    emax = 100.0
+    ec50 = np.interp(binding_energy, [-12, -4], [0.5, 150])
+    hill_coeff = 2.4 if "Receptor" in protein_categories[st.session_state.selected_target] else 1.2
     
     conc = np.logspace(-1, 4, 100)
-    response = (emax * (conc**hill_coeff)) / ( (ec50**hill_coeff) + (conc**hill_coeff) )
+    response = (100.0 * (conc**hill_coeff)) / ((ec50**hill_coeff) + (conc**hill_coeff))
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=conc, y=response, name="Response Curve", line=dict(color='#007bff', width=4)))
     fig.add_hline(y=dynamic_tox, line_dash="dash", line_color="red", annotation_text="Toxicity Threshold")
-    fig.update_layout(xaxis_type="log", title="Log-Dose Response Graph", xaxis_title="Concentration (nM)", yaxis_title="Response (%)")
+    fig.update_layout(xaxis_type="log", title=f"Log-Dose Response: {st.session_state.selected_drug}", xaxis_title="Concentration (nM)", yaxis_title="Response (%)")
     st.plotly_chart(fig, use_container_width=True)
     
 
     st.subheader("📊 Dose-Response Calculation Table")
     metrics = {
         "Parameter": ["Calculated EC50", "Hill Slope (n)", "Max Efficacy (Emax)", "Toxicity Limit"],
-        "Value": [f"{round(ec50, 2)} nM", hill_coeff, f"{emax}%", f"{dynamic_tox}%"],
+        "Value": [f"{round(ec50, 2)} nM", hill_coeff, "100%", f"{dynamic_tox}%"],
         "Interpretation": [
             "Potency: Concentration needed for 50% effect. Smaller is better.",
             "Cooperativity: Steepness of the curve. Higher values mean a sharp 'on/off' effect.",
@@ -145,7 +158,7 @@ elif module == "Dose-Response Analysis":
 elif module == "Pathway & Signal Analysis":
     st.header("⚡ Cellular Signaling & Signal Decay")
     
-    inhibition = np.interp(st.session_state.selected_energy, [-12, -4], [98, 15])
+    inhibition = np.interp(binding_energy, [-12, -4], [98, 15])
     steps = [st.session_state.selected_target, "Relay Protein", "Kinase Cascade", "Transcription", "Cell Fate"]
     decay = [round(inhibition * (0.8**i), 1) for i in range(len(steps))]
     
@@ -157,9 +170,9 @@ elif module == "Pathway & Signal Analysis":
         <h3>📉 Bar Chart Result Interpretation</h3>
         This chart displays <b>Pharmacological Momentum</b> across five biological stages:
         <ul>
-            <li><b>Initial Binding:</b> At the start, <b>{st.session_state.selected_drug}</b> blocks <b>{decay[0]}%</b> of the <b>{st.session_state.selected_target}</b> enzyme.</li>
+            <li><b>Initial Binding:</b> At the start, <b>{st.session_state.selected_drug}</b> blocks <b>{decay[0]}%</b> of the <b>{st.session_state.selected_target}</b>.</li>
             <li><b>Intermediate Decay:</b> By the <b>{steps[2]}</b> stage, only <b>{decay[2]}%</b> of that inhibitory signal remains.</li>
-            <li><b>Net Physiological Impact:</b> The final <b>{decay[4]}%</b> shows the actual change in the patient's cell fate. A value below 30% indicates the drug's effect is lost before it can treat the disease.</li>
+            <li><b>Net Physiological Impact:</b> The final <b>{decay[4]}%</b> shows the actual change in the patient's cell fate.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -179,24 +192,18 @@ elif module == "Pathway & Signal Analysis":
 elif module == "Network Pharmacology Explorer":
     st.header(f"🕸️ STRING Mesh: Functional Protein Associations")
     net = Network(height="550px", width="100%", bgcolor="#ffffff", font_color="black")
-    
     net.add_node(st.session_state.selected_drug, label=st.session_state.selected_drug, color="#ff4b4b", size=40)
     
-    # Primary Targets (Emphasizing the 49 Intersection Targets)
-    mesh_targets = ["AKT1", "STAT3", "TNF", "MAPK", "IL-6", "PTGS2", "VEGFA", "NFKB1"]
+    mesh_targets = random.sample(["AKT1", "STAT3", "TNF", "MAPK", "IL-6", "PTGS2", "VEGFA", "NFKB1", "MTOR", "TP53"], 8)
     for p in mesh_targets:
-        is_intersection = p in ["TNF", "IL-6", "PTGS2"]
+        is_intersection = random.choice([True, False])
         net.add_node(p, label=p, color="#ff4b4b" if is_intersection else "#1c83e1", size=30 if is_intersection else 20)
         net.add_edge(st.session_state.selected_drug, p, width=2)
     
-    # STRING Database functional "strings" logic
     for i in range(len(mesh_targets)):
-        target_a = mesh_targets[i]
-        target_b = mesh_targets[(i + 1) % len(mesh_targets)]
-        target_c = mesh_targets[(i + 2) % len(mesh_targets)]
-        net.add_edge(target_a, target_b, color="#dddddd", width=1)
-        net.add_edge(target_a, target_c, color="#666666", width=1)
-                
+        t_a, t_b = mesh_targets[i], mesh_targets[(i + 1) % len(mesh_targets)]
+        net.add_edge(t_a, t_b, color="#dddddd", width=1)
+
     net.toggle_physics(True)
     net.save_graph("mesh.html")
     with open("mesh.html", 'r') as f: components.html(f.read(), height=600)
@@ -207,9 +214,9 @@ elif module == "Network Pharmacology Explorer":
         <h3>🕸️ STRING Network Result Interpretation</h3>
         This "Mesh of Strings" mimics your <b>STRING Database</b> results:
         <ul>
-            <li><b>Node Colors:</b> The Red nodes represent the <b>Intersection Targets</b> (Bioactive Hubs). The Blue nodes are associated secondary targets.</li>
-            <li><b>String Connectivity:</b> The density of strings between nodes (e.g., TNF and IL-6) shows <b>Functional Association</b>. High connectivity indicates that the drug disrupts an entire disease pathway.</li>
-            <li><b>Biological Hubs:</b> Proteins with the most strings are "Hubs." Hitting a hub makes the treatment more powerful but requires careful safety monitoring.</li>
+            <li><b>Node Colors:</b> Red nodes represent <b>Intersection Targets</b> (Bioactive Hubs). Blue are associated secondary targets.</li>
+            <li><b>String Connectivity:</b> Density of strings shows <b>Functional Association</b>. High connectivity indicates disruption of an entire disease pathway.</li>
+            <li><b>Biological Hubs:</b> Proteins with the most strings are "Hubs," making them powerful treatment sites.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -219,20 +226,17 @@ elif module == "Network Pharmacology Explorer":
 # -------------------------------------------------
 elif module == "Molecular Docking":
     st.header("🧩 In-Silico Molecular Docking")
-    
-    inter_types = ["H-Bond (Hydrogen Bonding)", "Van der Waals Force", "Pi-Stacking (Hydrophobic)", "Ionic Interaction"]
-    poses = [[i, round(st.session_state.selected_energy + random.uniform(-0.3, 0.3), 2), random.choice(inter_types)] for i in range(1, 6)]
-    df_dock = pd.DataFrame(poses, columns=["Pose ID", "Affinity (kcal/mol)", "Interaction Type"])
-    st.table(df_dock)
+    inter_types = ["H-Bond", "Van der Waals", "Pi-Stacking", "Ionic Interaction"]
+    poses = [[i, round(binding_energy + random.uniform(-0.4, 0.4), 2), random.choice(inter_types)] for i in range(1, 6)]
+    st.table(pd.DataFrame(poses, columns=["Pose ID", "Affinity (kcal/mol)", "Interaction Type"]))
     
 
     st.markdown(f"""
     <div class="explanation-box">
         <h3>🧩 Docking Result Interpretation</h3>
-        This data predicts the <b>Lock-and-Key fit</b>:
         <ul>
-            <li><b>Pose 1:</b> The most stable conformation. The affinity of <b>{poses[0][1]} kcal/mol</b> indicates a high likelihood of spontaneous binding.</li>
-            <li><b>Interaction Type:</b> {poses[0][2]} is the dominant force holding the drug in the protein pocket. H-bonding is a sign of a very specific drug.</li>
+            <li><b>Pose 1:</b> Most stable conformation at <b>{poses[0][1]} kcal/mol</b>.</li>
+            <li><b>Interaction:</b> {poses[0][2]} is the dominant force. H-bonding indicates high specificity.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -242,31 +246,23 @@ elif module == "Molecular Docking":
 # -------------------------------------------------
 elif module == "Project Conclusion":
     st.header("🏁 Clinical Trial Readiness Verdict")
-    inhibition = np.interp(st.session_state.selected_energy, [-12, -4], [98, 15])
+    inhibition = np.interp(binding_energy, [-12, -4], [98, 15])
     final_signal = inhibition * (0.8**4)
-    potency_score = abs(st.session_state.selected_energy)
     
-    is_potent = potency_score > 7.0
-    is_safe = dynamic_tox < 75.0
-    is_effective = final_signal > 30.0
-    
+    is_potent, is_safe, is_effective = abs(binding_energy) > 7.5, dynamic_tox < 75.0, final_signal > 30.0
     verdict = "GO" if (is_potent and is_safe and is_effective) else "NO-GO"
-    v_class = "go-signal" if verdict == "GO" else "nogo-signal"
     
     st.markdown(f"""
-    <div class="conclusion-card {v_class}">
+    <div class="conclusion-card {'go-signal' if verdict == 'GO' else 'nogo-signal'}">
         <h2 style="text-align: center;">VERDICT: {verdict}</h2>
-        <p style="text-align: center; font-size: 1.2em;">Based on potency, safety, and signaling efficacy for <b>{st.session_state.selected_drug}</b>.</p>
+        <p style="text-align: center;">Drug Analysis Summary for <b>{st.session_state.selected_drug}</b></p>
     </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
     <div class="explanation-box">
         <h3>📝 Detailed Clinical Rationale</h3>
         <ul>
-            <li><b>Binding Profile:</b> Energy of {st.session_state.selected_energy} kcal/mol shows {'strong' if is_potent else 'weak'} affinity.</li>
-            <li><b>Safety Rating:</b> Toxicity threshold of {dynamic_tox}% is {'within' if is_safe else 'outside'} acceptable limits.</li>
-            <li><b>Efficacy Conclusion:</b> A final signal of {round(final_signal,1)}% proves the drug {'can' if is_effective else 'cannot'} effectively alter the cellular outcome.</li>
+            <li><b>Binding Profile:</b> {binding_energy} kcal/mol ({'Potent' if is_potent else 'Weak'}).</li>
+            <li><b>Safety Rating:</b> Toxicity threshold {dynamic_tox}% ({'Safe' if is_safe else 'Unsafe'}).</li>
+            <li><b>Efficacy:</b> Final signal {round(final_signal,1)}% ({'Effective' if is_effective else 'Low Impact'}).</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
