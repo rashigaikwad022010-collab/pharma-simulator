@@ -196,39 +196,86 @@ elif module == "Dose Response Simulator":
 # 5. PROTEIN PATHWAY SIMULATOR (THE IMPACT)
 # -------------------------------------------------
 elif module == "Protein Pathway Simulator":
-    st.header("⚡ Pathway Signal Cascade Simulator")
-    st.info("After finding the dose, we simulate how the signal 'dies out' across the protein chain.")
-
-    col1, col2 = st.columns([1, 2])
+    st.header("⚡ Advanced Signal Cascade & Impact Analysis")
     
+    # --- 1. AUTOMATED INPUTS ---
+    col1, col2 = st.columns([1, 2])
     with col1:
-        drug = st.text_input("Lead Compound", "Aspirin")
-        base_inhibition = st.slider("Initial Inhibition at Source (%)", 10, 100, 80)
-        pathway_depth = st.slider("Pathway Depth (Steps)", 2, 6, 4)
+        st.subheader("Configuration")
+        energy_input = st.number_input("Enter Binding Energy (kcal/mol)", value=-7.0, max_value=0.0, step=0.1)
+        target_p = st.selectbox("Select Primary Target", protein_list)
         
-    # Logic: Signal decay. Each step in the pathway loses some "power"
-    steps = [f"Step {i+1}" for i in range(pathway_depth)]
-    signal = [base_inhibition * (0.8**i) for i in range(pathway_depth)] # 20% decay per step
+        # LOGIC: Convert Energy to Inhibition %
+        # -12 kcal/mol (Very Strong) -> 100%, -4 kcal/mol (Weak) -> 20%
+        auto_inhibition = np.interp(energy_input, [-12, -4], [100, 20])
+        p_type = protein_categories.get(target_p, "Enzyme")
+        # Receptors trigger long cascades (5 steps), Enzymes are usually direct (3 steps)
+        auto_depth = 5 if p_type in ["Receptor", "Transcription Factor", "Growth Factor"] else 3
+        
+        st.info(f"**Target Class:** {p_type}\n\n**Calculated Hit:** {round(auto_inhibition)}% inhibition at source.")
 
+    # --- 2. INTERACTIVE VISUALIZATION ---
     with col2:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=steps, y=signal, marker_color='firebrick'))
-        fig.update_layout(title="Signal Inhibition Cascade", yaxis_title="Inhibition Strength (%)", template="plotly_white")
-        st.plotly_chart(fig, use_container_width=True)
-
-    if st.button("Generate Pathway Map"):
-        G = nx.DiGraph() # Directed graph for flow
-        G.add_node(drug, color='red')
-        prev = drug
-        for p in random.sample(protein_list, pathway_depth):
-            G.add_node(p, color='blue')
-            G.add_edge(prev, p)
-            prev = p
+        st.subheader("Molecular Chain Interaction")
+        path_net = Network(height="400px", width="100%", bgcolor="#ffffff", font_color="black", directed=True)
         
-        fig, ax = plt.subplots()
-        pos = nx.spring_layout(G)
-        nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=3000, arrowsize=20)
-        st.pyplot(fig)
+        # Create a logical chain of proteins
+        chain = [target_p] + random.sample([p for p in protein_list if p != target_p], auto_depth - 1)
+        
+        for i in range(len(chain)):
+            strength = auto_inhibition * (0.8**i) # 20% decay per step
+            
+            # Color logic: Red for target, Blue for downstream
+            n_color = "#ff4b4b" if i == 0 else "#1c83e1"
+            n_size = 30 if i == 0 else 20
+            
+            path_net.add_node(
+                chain[i], 
+                label=f"{chain[i]}\n{round(strength)}%", 
+                title=f"Protein: {chain[i]} | Signal: {round(strength)}%",
+                color=n_color,
+                size=n_size,
+                shape="dot"
+            )
+            
+            if i > 0:
+                path_net.add_edge(chain[i-1], chain[i], width=3, color="#848484", arrows="to")
+
+        path_net.toggle_physics(True)
+        path_net.save_graph("pathway_map.html")
+        HtmlFile = open("pathway_map.html", 'r', encoding='utf-8')
+        components.html(HtmlFile.read(), height=450)
+
+    # --- 3. THE "WHAT DOES THIS MEAN?" SECTION ---
+    st.divider()
+    st.subheader("📊 Results Interpretation")
+    
+    final_impact = auto_inhibition * (0.8**(auto_depth-1))
+    
+    detail_col1, detail_col2 = st.columns(2)
+    
+    with detail_col1:
+        st.markdown(f"""
+        ### What the Graph Says:
+        * **The Red Node ({target_p}):** This is where your drug binds. At **{energy_input} kcal/mol**, it successfully shuts down **{round(auto_inhibition)}%** of this protein's activity.
+        * **The Blue Nodes:** These are 'downstream' proteins. They don't touch the drug, but they lose power because the first protein is blocked.
+        * **Signal Decay:** Every arrow represents a loss of biological signal. Your model assumes a **20% loss** of efficiency at every step in the chain.
+        """)
+
+    with detail_col2:
+        st.markdown(f"""
+        ### The Pathway Verdict:
+        * **Final Physiological Impact:** {round(final_impact)}%
+        * **Clinical Outlook:** """)
+        if final_impact > 60:
+            st.success("✅ **High Efficacy:** The drug is strong enough to trigger a major biological change even through a long pathway.")
+        elif final_impact > 30:
+            st.warning("⚠️ **Moderate Efficacy:** The effect is significantly weakened. Consider a higher dose or a stronger binding lead.")
+        else:
+            st.error("❌ **Low Efficacy:** The signal 'dies' before reaching the end of the pathway. This drug may fail in clinical trials.")
+ 
+      
+       
 
 # -------------------------------------------------
 # 6. VIRTUAL DRUG SCREENING (THE DISCOVERY)
