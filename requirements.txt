@@ -4,4 +4,6 @@ numpy
 plotly
 matplotlib
 scipy
+networkx
+
 
