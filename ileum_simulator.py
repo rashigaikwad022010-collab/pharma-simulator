@@ -5,15 +5,26 @@ import plotly.graph_objects as go
 import random
 import matplotlib.pyplot as plt
 import networkx as nx
+from pyvis.network import Network
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Pharmaceutical Research Simulator", layout="wide")
+# --- UI SETTINGS ---
+st.set_page_config(page_title="Pharmaceutical Research Simulator", layout="wide", page_icon="🧬")
+
+# Professional Styling
+st.markdown("""
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stButton>button { width: 100%; border-radius: 8px; background-color: #007bff; color: white; }
+    .stTable { border-radius: 10px; overflow: hidden; }
+    </style>
+""", unsafe_allow_html=True)
 
 st.title("🧬 Pharmaceutical Research Simulator")
 
 # -------------------------------------------------
 # SIDEBAR MODULE SELECTOR
 # -------------------------------------------------
-
 module = st.sidebar.selectbox(
     "Select Simulator Module",
     [
@@ -27,9 +38,8 @@ module = st.sidebar.selectbox(
 )
 
 # -------------------------------------------------
-# DRUG DATABASE
+# DRUG & PROTEIN DATABASE (Your Original Lists)
 # -------------------------------------------------
-
 drug_list = [
 "Aspirin","Ibuprofen","Paracetamol","Diclofenac","Naproxen",
 "Ketorolac","Indomethacin","Celecoxib","Etoricoxib","Meloxicam",
@@ -59,239 +69,133 @@ protein_list = [
 ]
 
 # -------------------------------------------------
-# NETWORK PHARMACOLOGY
+# 1. NETWORK PHARMACOLOGY (UPGRADED)
 # -------------------------------------------------
-
 if module == "Network Pharmacology Explorer":
-
     st.header("Network Pharmacology Explorer")
-
     drug = st.selectbox("Select Drug", drug_list)
+    
+    # Using Pyvis for an interactive experience
+    net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
+    net.add_node(drug, label=drug, color="#ff4b4b", size=25)
+    
+    targets = random.sample(protein_list, 15)
+    for t in targets:
+        net.add_node(t, label=t, color="#1c83e1")
+        net.add_edge(drug, t)
+        # Random interactions between proteins for realism
+        if random.random() > 0.8:
+            net.add_edge(t, random.choice(targets))
 
-    proteins = random.sample(protein_list, 20)
-
-    nodes = ["Drug"] + proteins
-
-    x = np.random.rand(len(nodes))
-    y = np.random.rand(len(nodes))
-
-    fig = go.Figure()
-
-    # drug-target edges
-    for i in range(1,len(nodes)):
-        fig.add_trace(go.Scatter(
-            x=[x[0],x[i]],
-            y=[y[0],y[i]],
-            mode="lines",
-            line=dict(color="gray"),
-            showlegend=False
-        ))
-
-    # protein interactions
-    for i in range(1,len(nodes)):
-        for j in range(i+1,len(nodes)):
-            if random.random() < 0.2:
-                fig.add_trace(go.Scatter(
-                    x=[x[i],x[j]],
-                    y=[y[i],y[j]],
-                    mode="lines",
-                    line=dict(color="lightgray"),
-                    showlegend=False
-                ))
-
-    fig.add_trace(go.Scatter(
-        x=x,
-        y=y,
-        mode="markers+text",
-        text=nodes,
-        textposition="top center",
-        marker=dict(size=18,color="blue")
-    ))
-
-    fig.update_layout(
-        title="Drug–Protein Interaction Network",
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
-        height=600
-    )
-
-    st.plotly_chart(fig,use_container_width=True)
+    net.toggle_physics(True)
+    net.save_graph("network.html")
+    HtmlFile = open("network.html", 'r', encoding='utf-8')
+    components.html(HtmlFile.read(), height=550)
 
 # -------------------------------------------------
-# MOLECULAR DOCKING
+# 2. MOLECULAR DOCKING (ENHANCED UI)
 # -------------------------------------------------
-
 elif module == "Molecular Docking Simulator":
-
     st.header("Molecular Docking Simulator")
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        ligand = st.selectbox("Select Ligand", drug_list)
+        protein = st.selectbox("Target Protein", protein_list)
+        run_btn = st.button("Run Docking")
 
-    ligand = st.selectbox("Select Ligand",drug_list)
-    protein = st.selectbox("Target Protein",protein_list)
-
-    if st.button("Run Docking"):
-
+    if run_btn:
         poses = 8
+        energies = -np.sort(np.random.uniform(5, 12, poses))
+        df = pd.DataFrame({"Pose": range(1, poses+1), "Binding Energy (kcal/mol)": energies})
+        
+        with col2:
+            st.subheader("Docking Poses")
+            st.table(df)
 
-        energies = -np.sort(np.random.uniform(5,12,poses))
-
-        df = pd.DataFrame({
-            "Pose":range(1,poses+1),
-            "Binding Energy (kcal/mol)":energies
-        })
-
-        st.subheader("Docking Poses")
-        st.table(df)
-
-        residues = [
-        "ARG120","TYR355","SER530","GLY526",
-        "LEU352","VAL349","TRP387","HIS90"
-        ]
-
-        interaction_types = [
-        "Hydrogen Bond",
-        "Hydrophobic Interaction",
-        "Van der Waals",
-        "Pi-Pi Stacking",
-        "Salt Bridge",
-        "Pi-Cation Interaction"
-        ]
-
-        data=[]
-
-        for r in residues:
-            data.append({
-                "Residue":r,
-                "Interaction":random.choice(interaction_types)
-            })
-
-        res_df = pd.DataFrame(data)
-
-        st.subheader("Key Binding Residues")
-        st.table(res_df)
+            residues = ["ARG120","TYR355","SER530","GLY526","LEU352","VAL349","TRP387","HIS90"]
+            interaction_types = ["Hydrogen Bond", "Hydrophobic", "Van der Waals", "Pi-Pi Stacking"]
+            
+            res_df = pd.DataFrame([{"Residue": r, "Interaction": random.choice(interaction_types)} for r in residues])
+            st.subheader("Key Binding Residues")
+            st.table(res_df)
 
 # -------------------------------------------------
-# CUSTOM DOCKING
+# 3. CUSTOM DOCKING (YOUR ORIGINAL LOGIC)
 # -------------------------------------------------
-
 elif module == "Custom Docking Simulator":
-
     st.header("Custom Docking Simulator")
-
     drug = st.text_input("Drug Name")
     protein = st.text_input("Target Protein")
-    energy = st.number_input("Binding Energy",value=-7.5)
-
+    energy = st.number_input("Binding Energy", value=-7.5)
     residues = st.text_input("Residues (comma separated)")
-    interaction = st.selectbox(
-        "Interaction Type",
-        ["Hydrogen Bond","Hydrophobic","Electrostatic","Pi-Pi Stacking"]
-    )
+    interaction = st.selectbox("Interaction Type", ["Hydrogen Bond","Hydrophobic","Electrostatic","Pi-Pi Stacking"])
 
     if st.button("Simulate"):
-
-        df = pd.DataFrame({
-            "Drug":[drug],
-            "Protein":[protein],
-            "Energy":[energy],
-            "Interaction":[interaction],
-            "Residues":[residues]
-        })
-
+        df = pd.DataFrame({"Drug":[drug], "Protein":[protein], "Energy":[energy], "Interaction":[interaction], "Residues":[residues]})
         st.dataframe(df)
 
 # -------------------------------------------------
-# DOSE RESPONSE
+# 4. DOSE RESPONSE (UPGRADED WITH LOG SCALE)
 # -------------------------------------------------
-
 elif module == "Dose Response Simulator":
-
     st.header("Dose Response Simulator")
+    drug = st.text_input("Drug", "Experimental Compound")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        ec50 = st.slider("EC50 (Potency)", 1, 100, 50)
+    with c2:
+        hill = st.slider("Hill Coefficient (nH)", 0.5, 3.0, 1.0)
+        max_effect = st.slider("Max Effect (%)", 10, 100, 90)
 
-    drug = st.text_input("Drug")
+    # Hill Equation for scientific accuracy
+    concentration = np.logspace(-1, 2.5, 100)
+    effect = (max_effect * (concentration**hill)) / ( (ec50**hill) + (concentration**hill) )
 
-    ec50 = st.slider("EC50",1,100,50)
-    max_effect = st.slider("Max Effect (%)",10,100,90)
-
-    concentration = np.linspace(0.1,100,100)
-
-    effect = (max_effect*concentration)/(ec50+concentration)
-
-    fig, ax = plt.subplots()
-
-    ax.plot(concentration,effect)
-
-    ax.set_xlabel("Concentration")
-    ax.set_ylabel("Effect %")
-    ax.set_title(f"Dose Response Curve for {drug}")
-
-    st.pyplot(fig)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=concentration, y=effect, mode='lines', name='Effect Curve'))
+    fig.update_layout(title=f"Dose Response for {drug}", xaxis_type="log", xaxis_title="Concentration", yaxis_title="Effect %")
+    st.plotly_chart(fig, use_container_width=True)
 
 # -------------------------------------------------
-# PATHWAY NETWORK
+# 5. PATHWAY NETWORK (YOUR ORIGINAL LOGIC)
 # -------------------------------------------------
-
 elif module == "Protein Pathway Simulator":
-
     st.header("Protein Pathway Network")
-
-    drug = st.text_input("Drug")
-
-    proteins = st.multiselect(
-        "Select Proteins",
-        protein_list
-    )
+    drug = st.text_input("Drug", "Aspirin")
+    proteins = st.multiselect("Select Proteins", protein_list, default=["COX2", "TNF"])
 
     if st.button("Generate Network"):
-
         G = nx.Graph()
-
         G.add_node(drug)
-
         for p in proteins:
             G.add_node(p)
-            G.add_edge(drug,p)
-
-        pos = nx.spring_layout(G)
-
+            G.add_edge(drug, p)
+        
         fig, ax = plt.subplots()
-
-        nx.draw(
-            G,
-            pos,
-            with_labels=True,
-            node_color="lightblue",
-            node_size=2000
-        )
-
+        nx.draw(G, with_labels=True, node_color="lightblue", node_size=2500, font_weight='bold')
         st.pyplot(fig)
 
 # -------------------------------------------------
-# VIRTUAL SCREENING
+# 6. VIRTUAL SCREENING (UPGRADED WITH HIGHLIGHTS)
 # -------------------------------------------------
-
 elif module == "Virtual Drug Screening":
-
     st.header("Virtual Drug Screening")
+    
+    if st.button("Start Screening"):
+        drugs = random.sample(drug_list, 10)
+        prots = random.sample(protein_list, 5)
+        results = []
 
-    drugs = random.sample(drug_list,10)
-    proteins = random.sample(protein_list,5)
+        for d in drugs:
+            for p in prots:
+                energy = round(random.uniform(-10.5, -4.0), 2)
+                results.append([d, p, energy])
 
-    results=[]
+        df = pd.DataFrame(results, columns=["Drug", "Protein", "Binding Energy"])
+        st.dataframe(df.style.background_gradient(subset=['Binding Energy'], cmap='RdYlGn_r'))
 
-    for d in drugs:
-        for p in proteins:
-            energy=round(random.uniform(-10,-4),2)
-            results.append([d,p,energy])
-
-    df = pd.DataFrame(
-        results,
-        columns=["Drug","Protein","Binding Energy"]
-    )
-
-    st.dataframe(df)
-
-    best=df.sort_values("Binding Energy").head(5)
-
-    st.subheader("Top Binding Results")
-
-    st.dataframe(best)
+        best = df.sort_values("Binding Energy").head(5)
+        st.subheader("Top Binding Results (Leads)")
+        st.dataframe(best)
