@@ -6,7 +6,13 @@ import random
 from pyvis.network import Network
 import streamlit.components.v1 as components
 import matplotlib.pyplot as plt
-from matplotlib_venn import venn2
+
+# --- SAFE IMPORT FOR VENN ---
+try:
+    from matplotlib_venn import venn2
+    VENN_AVAILABLE = True
+except ImportError:
+    VENN_AVAILABLE = False
 
 # --- UI SETTINGS ---
 st.set_page_config(page_title="Advanced Pharma Pipeline", layout="wide", page_icon="🧬")
@@ -79,16 +85,19 @@ if module == "Virtual Screening":
 elif module == "Venn Diagram Analysis":
     st.header(f"📊 Target Overlap Analysis: {st.session_state.selected_drug}")
     
-    # Values based on your uploaded images (62 exclusive, 49 intersection, 33 exclusive)
-    fig, ax = plt.subplots(figsize=(8, 5))
-    v = venn2(subsets=(62, 33, 49), set_labels=(f'Predicted Targets\nof {st.session_state.selected_drug}', 'Disease-Associated\nProteins'))
-    st.pyplot(fig)
-    
+    if VENN_AVAILABLE:
+        # Values based on your uploaded images: 62 exclusive, 49 intersection, 33 exclusive
+        fig, ax = plt.subplots(figsize=(8, 5))
+        venn2(subsets=(62, 33, 49), set_labels=(f'Predicted Targets\nof {st.session_state.selected_drug}', 'Disease-Associated\nProteins'))
+        st.pyplot(fig)
+        
+    else:
+        st.error("Error: 'matplotlib-venn' library not found. Please run 'pip install matplotlib-venn'.")
 
     st.markdown(f"""
     <div class="explanation-box">
         <h3>🔍 Venn Result Interpretation</h3>
-        This diagram identifies the <b>Therapeutic Bioactives</b>:
+        This diagram identifies the <b>Therapeutic Bioactives</b> for your research:
         <ul>
             <li><b>Total Overlap (49):</b> These are the high-priority targets. They represent proteins that are both predicted to bind with {st.session_state.selected_drug} and are scientifically proven to be involved in the disease.</li>
             <li><b>Exclusive Drug Targets (62):</b> These represent potential "off-target" interactions which might cause secondary side effects.</li>
@@ -164,18 +173,6 @@ elif module == "Pathway & Signal Analysis":
     with open("path.html", 'r') as f: components.html(f.read(), height=450)
     
 
-    st.markdown(f"""
-    <div class="explanation-box">
-        <h3>🕸️ Flowchart Result Interpretation</h3>
-        This diagram maps the <b>Signaling Chain Reaction</b> within the cell:
-        <ul>
-            <li><b>Red Master Node ({decay[0]}%):</b> This represents the direct docking site. Because it is turned off at {decay[0]}%, the biological 'highway' is blocked.</li>
-            <li><b>Information Flow:</b> The arrows show how the signal travels. The Blue nodes show the <b>domino effect</b>; because the first node is inhibited, the subsequent proteins are 'starved' of their activating signal.</li>
-            <li><b>Outcome:</b> The final node at <b>{decay[4]}%</b> is the successful prevention of a disease response.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
 # -------------------------------------------------
 # 5. NETWORK PHARMACOLOGY EXPLORER
 # -------------------------------------------------
@@ -183,25 +180,22 @@ elif module == "Network Pharmacology Explorer":
     st.header(f"🕸️ STRING Mesh: Functional Protein Associations")
     net = Network(height="550px", width="100%", bgcolor="#ffffff", font_color="black")
     
-    # Core Drug Node
     net.add_node(st.session_state.selected_drug, label=st.session_state.selected_drug, color="#ff4b4b", size=40)
     
     # Primary Targets (Emphasizing the 49 Intersection Targets)
     mesh_targets = ["AKT1", "STAT3", "TNF", "MAPK", "IL-6", "PTGS2", "VEGFA", "NFKB1"]
     for p in mesh_targets:
-        # Highlighting core intersection targets
         is_intersection = p in ["TNF", "IL-6", "PTGS2"]
         net.add_node(p, label=p, color="#ff4b4b" if is_intersection else "#1c83e1", size=30 if is_intersection else 20)
         net.add_edge(st.session_state.selected_drug, p, width=2)
     
-    # Functional Association "Strings" (STRING Database Logic)
+    # STRING Database functional "strings" logic
     for i in range(len(mesh_targets)):
         target_a = mesh_targets[i]
-        # Create a mesh by connecting neighbors
         target_b = mesh_targets[(i + 1) % len(mesh_targets)]
         target_c = mesh_targets[(i + 2) % len(mesh_targets)]
         net.add_edge(target_a, target_b, color="#dddddd", width=1)
-        net.add_edge(target_a, target_c, color="#666666", width=1) # Darker strings for higher confidence
+        net.add_edge(target_a, target_c, color="#666666", width=1)
                 
     net.toggle_physics(True)
     net.save_graph("mesh.html")
@@ -214,8 +208,8 @@ elif module == "Network Pharmacology Explorer":
         This "Mesh of Strings" mimics your <b>STRING Database</b> results:
         <ul>
             <li><b>Node Colors:</b> The Red nodes represent the <b>Intersection Targets</b> (Bioactive Hubs). The Blue nodes are associated secondary targets.</li>
-            <li><b>String Connectivity:</b> The density of strings between nodes (e.g., TNF and IL-6) shows <b>Functional Association</b>. In your results, high connectivity indicates that the drug disrupts an entire disease pathway, not just a single protein.</li>
-            <li><b>Biological Hubs:</b> Proteins with the most strings are "Hubs." If your drug hits a hub, the treatment is more powerful but must be monitored for safety.</li>
+            <li><b>String Connectivity:</b> The density of strings between nodes (e.g., TNF and IL-6) shows <b>Functional Association</b>. High connectivity indicates that the drug disrupts an entire disease pathway.</li>
+            <li><b>Biological Hubs:</b> Proteins with the most strings are "Hubs." Hitting a hub makes the treatment more powerful but requires careful safety monitoring.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -238,7 +232,7 @@ elif module == "Molecular Docking":
         This data predicts the <b>Lock-and-Key fit</b>:
         <ul>
             <li><b>Pose 1:</b> The most stable conformation. The affinity of <b>{poses[0][1]} kcal/mol</b> indicates a high likelihood of spontaneous binding.</li>
-            <li><b>Interaction Type:</b> {poses[0][2]} is the dominant force holding the drug in the protein pocket. H-bonding is usually the sign of a very specific and effective drug.</li>
+            <li><b>Interaction Type:</b> {poses[0][2]} is the dominant force holding the drug in the protein pocket. H-bonding is a sign of a very specific drug.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
