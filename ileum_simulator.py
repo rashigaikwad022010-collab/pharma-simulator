@@ -3,24 +3,32 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import random
+import matplotlib.pyplot as plt
+import networkx as nx
 
-st.set_page_config(page_title="Pharmaceutical Drug Discovery Simulator", layout="wide")
+st.set_page_config(page_title="Pharmaceutical Research Simulator", layout="wide")
 
-st.title("🧬 Pharmaceutical Drug Discovery Simulator")
+st.title("🧬 Pharmaceutical Research Simulator")
 
-st.sidebar.title("Modules")
+# -------------------------------------------------
+# SIDEBAR MODULE SELECTOR
+# -------------------------------------------------
 
-module = st.sidebar.radio(
-    "Select Module",
+module = st.sidebar.selectbox(
+    "Select Simulator Module",
     [
         "Network Pharmacology Explorer",
-        "Molecular Docking Simulator"
+        "Molecular Docking Simulator",
+        "Custom Docking Simulator",
+        "Dose Response Simulator",
+        "Protein Pathway Simulator",
+        "Virtual Drug Screening"
     ]
 )
 
-# -----------------------------------------------------
-# LARGE DRUG DATABASE
-# -----------------------------------------------------
+# -------------------------------------------------
+# DRUG DATABASE
+# -------------------------------------------------
 
 drug_list = [
 "Aspirin","Ibuprofen","Paracetamol","Diclofenac","Naproxen",
@@ -43,10 +51,6 @@ drug_list = [
 "Ondansetron","Domperidone","Metoclopramide"
 ]
 
-# -----------------------------------------------------
-# PROTEIN DATABASE (30+ PROTEINS)
-# -----------------------------------------------------
-
 protein_list = [
 "COX2","AKT1","MAPK1","PI3K","mTOR","EGFR","JAK2","STAT3","NFkB",
 "TNF","IL6","BRAF","MEK1","ERK2","SRC","VEGFA","HIF1A","TP53",
@@ -54,9 +58,9 @@ protein_list = [
 "MMP9","NOS3","CXCL8","TGFb1"
 ]
 
-# -----------------------------------------------------
-# NETWORK PHARMACOLOGY MODULE
-# -----------------------------------------------------
+# -------------------------------------------------
+# NETWORK PHARMACOLOGY
+# -------------------------------------------------
 
 if module == "Network Pharmacology Explorer":
 
@@ -64,35 +68,34 @@ if module == "Network Pharmacology Explorer":
 
     drug = st.selectbox("Select Drug", drug_list)
 
-    # choose 20 proteins
-    selected_proteins = random.sample(protein_list, 20)
+    proteins = random.sample(protein_list, 20)
 
-    nodes = ["Drug"] + selected_proteins
+    nodes = ["Drug"] + proteins
 
     x = np.random.rand(len(nodes))
     y = np.random.rand(len(nodes))
 
     fig = go.Figure()
 
-    # Drug → protein connections
-    for i in range(1, len(nodes)):
+    # drug-target edges
+    for i in range(1,len(nodes)):
         fig.add_trace(go.Scatter(
-            x=[x[0], x[i]],
-            y=[y[0], y[i]],
+            x=[x[0],x[i]],
+            y=[y[0],y[i]],
             mode="lines",
-            line=dict(width=2, color="gray"),
+            line=dict(color="gray"),
             showlegend=False
         ))
 
-    # protein–protein interactions
-    for i in range(1, len(nodes)):
-        for j in range(i+1, len(nodes)):
-            if random.random() < 0.15:
+    # protein interactions
+    for i in range(1,len(nodes)):
+        for j in range(i+1,len(nodes)):
+            if random.random() < 0.2:
                 fig.add_trace(go.Scatter(
-                    x=[x[i], x[j]],
-                    y=[y[i], y[j]],
+                    x=[x[i],x[j]],
+                    y=[y[i],y[j]],
                     mode="lines",
-                    line=dict(width=1, color="lightgray"),
+                    line=dict(color="lightgray"),
                     showlegend=False
                 ))
 
@@ -102,60 +105,46 @@ if module == "Network Pharmacology Explorer":
         mode="markers+text",
         text=nodes,
         textposition="top center",
-        marker=dict(size=20,color="blue")
+        marker=dict(size=18,color="blue")
     ))
 
     fig.update_layout(
-        title="Complex Drug–Protein Interaction Network",
+        title="Drug–Protein Interaction Network",
         xaxis=dict(visible=False),
         yaxis=dict(visible=False),
         height=600
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig,use_container_width=True)
 
-    st.subheader("Predicted Target Proteins")
-
-    df = pd.DataFrame({
-        "Drug":[drug]*len(selected_proteins),
-        "Protein":selected_proteins
-    })
-
-    st.table(df)
-
-# -----------------------------------------------------
-# MOLECULAR DOCKING MODULE
-# -----------------------------------------------------
+# -------------------------------------------------
+# MOLECULAR DOCKING
+# -------------------------------------------------
 
 elif module == "Molecular Docking Simulator":
 
     st.header("Molecular Docking Simulator")
 
-    ligand = st.selectbox("Select Ligand", drug_list)
+    ligand = st.selectbox("Select Ligand",drug_list)
+    protein = st.selectbox("Target Protein",protein_list)
 
-    protein = st.selectbox("Select Target Protein", protein_list)
-
-    if st.button("Run Docking Simulation"):
-
-        np.random.seed(len(ligand)+len(protein))
+    if st.button("Run Docking"):
 
         poses = 8
 
         energies = -np.sort(np.random.uniform(5,12,poses))
 
-        docking_df = pd.DataFrame({
+        df = pd.DataFrame({
             "Pose":range(1,poses+1),
             "Binding Energy (kcal/mol)":energies
         })
 
         st.subheader("Docking Poses")
+        st.table(df)
 
-        st.table(docking_df)
-
-        # realistic residue list
         residues = [
-        "ARG120","TYR355","SER530","GLY526","LEU352","VAL349",
-        "ALA527","TRP387","HIS90","LYS83"
+        "ARG120","TYR355","SER530","GLY526",
+        "LEU352","VAL349","TRP387","HIS90"
         ]
 
         interaction_types = [
@@ -167,17 +156,142 @@ elif module == "Molecular Docking Simulator":
         "Pi-Cation Interaction"
         ]
 
-        interaction_data = []
+        data=[]
 
         for r in residues:
-
-            interaction_data.append({
-                "Residue": r,
-                "Interaction": random.choice(interaction_types)
+            data.append({
+                "Residue":r,
+                "Interaction":random.choice(interaction_types)
             })
 
-        interaction_df = pd.DataFrame(interaction_data)
+        res_df = pd.DataFrame(data)
 
         st.subheader("Key Binding Residues")
+        st.table(res_df)
 
-        st.table(interaction_df)
+# -------------------------------------------------
+# CUSTOM DOCKING
+# -------------------------------------------------
+
+elif module == "Custom Docking Simulator":
+
+    st.header("Custom Docking Simulator")
+
+    drug = st.text_input("Drug Name")
+    protein = st.text_input("Target Protein")
+    energy = st.number_input("Binding Energy",value=-7.5)
+
+    residues = st.text_input("Residues (comma separated)")
+    interaction = st.selectbox(
+        "Interaction Type",
+        ["Hydrogen Bond","Hydrophobic","Electrostatic","Pi-Pi Stacking"]
+    )
+
+    if st.button("Simulate"):
+
+        df = pd.DataFrame({
+            "Drug":[drug],
+            "Protein":[protein],
+            "Energy":[energy],
+            "Interaction":[interaction],
+            "Residues":[residues]
+        })
+
+        st.dataframe(df)
+
+# -------------------------------------------------
+# DOSE RESPONSE
+# -------------------------------------------------
+
+elif module == "Dose Response Simulator":
+
+    st.header("Dose Response Simulator")
+
+    drug = st.text_input("Drug")
+
+    ec50 = st.slider("EC50",1,100,50)
+    max_effect = st.slider("Max Effect (%)",10,100,90)
+
+    concentration = np.linspace(0.1,100,100)
+
+    effect = (max_effect*concentration)/(ec50+concentration)
+
+    fig, ax = plt.subplots()
+
+    ax.plot(concentration,effect)
+
+    ax.set_xlabel("Concentration")
+    ax.set_ylabel("Effect %")
+    ax.set_title(f"Dose Response Curve for {drug}")
+
+    st.pyplot(fig)
+
+# -------------------------------------------------
+# PATHWAY NETWORK
+# -------------------------------------------------
+
+elif module == "Protein Pathway Simulator":
+
+    st.header("Protein Pathway Network")
+
+    drug = st.text_input("Drug")
+
+    proteins = st.multiselect(
+        "Select Proteins",
+        protein_list
+    )
+
+    if st.button("Generate Network"):
+
+        G = nx.Graph()
+
+        G.add_node(drug)
+
+        for p in proteins:
+            G.add_node(p)
+            G.add_edge(drug,p)
+
+        pos = nx.spring_layout(G)
+
+        fig, ax = plt.subplots()
+
+        nx.draw(
+            G,
+            pos,
+            with_labels=True,
+            node_color="lightblue",
+            node_size=2000
+        )
+
+        st.pyplot(fig)
+
+# -------------------------------------------------
+# VIRTUAL SCREENING
+# -------------------------------------------------
+
+elif module == "Virtual Drug Screening":
+
+    st.header("Virtual Drug Screening")
+
+    drugs = random.sample(drug_list,10)
+    proteins = random.sample(protein_list,5)
+
+    results=[]
+
+    for d in drugs:
+        for p in proteins:
+            energy=round(random.uniform(-10,-4),2)
+            results.append([d,p,energy])
+
+    df = pd.DataFrame(
+        results,
+        columns=["Drug","Protein","Binding Energy"]
+    )
+
+    st.dataframe(df)
+
+    best=df.sort_values("Binding Energy").head(5)
+
+    st.subheader("Top Binding Results")
+
+    st.dataframe(best)
