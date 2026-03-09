@@ -71,26 +71,39 @@ protein_list = [
 # -------------------------------------------------
 # 1. NETWORK PHARMACOLOGY (UPGRADED)
 # -------------------------------------------------
+# -------------------------------------------------
+# 1. NETWORK PHARMACOLOGY (FIXED)
+# -------------------------------------------------
 if module == "Network Pharmacology Explorer":
     st.header("Network Pharmacology Explorer")
     drug = st.selectbox("Select Drug", drug_list)
     
-    # Using Pyvis for an interactive experience
     net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
+    
+    # 1. Add the Drug node first
     net.add_node(drug, label=drug, color="#ff4b4b", size=25)
     
+    # 2. Pre-select and add all Target nodes first to avoid the AssertionError
     targets = random.sample(protein_list, 15)
     for t in targets:
         net.add_node(t, label=t, color="#1c83e1")
+    
+    # 3. Now add the edges (connections)
+    for t in targets:
+        # Connect drug to protein
         net.add_edge(drug, t)
-        # Random interactions between proteins for realism
+        
+        # Connect protein to another protein (only if it exists in our target list)
         if random.random() > 0.8:
-            net.add_edge(t, random.choice(targets))
+            other_p = random.choice(targets)
+            if other_p != t:  # Avoid connecting a protein to itself
+                net.add_edge(t, other_p)
 
     net.toggle_physics(True)
     net.save_graph("network.html")
     HtmlFile = open("network.html", 'r', encoding='utf-8')
     components.html(HtmlFile.read(), height=550)
+        
 
 # -------------------------------------------------
 # 2. MOLECULAR DOCKING (ENHANCED UI)
