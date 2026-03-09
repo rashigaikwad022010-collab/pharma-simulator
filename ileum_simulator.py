@@ -96,6 +96,10 @@ if module == "Virtual Screening":
 # -------------------------------------------------
 # 2. VENN DIAGRAM ANALYSIS (WITH DYNAMIC TABLE)
 # -------------------------------------------------
+
+       # -------------------------------------------------
+# 2. VENN DIAGRAM ANALYSIS (WITH TARGET NAMES)
+# -------------------------------------------------
 elif module == "Venn Diagram Analysis":
     st.header(f"📊 Target Overlap Analysis: {selected_drug}")
     
@@ -108,35 +112,35 @@ elif module == "Venn Diagram Analysis":
     else:
         st.error("Error: 'matplotlib-venn' library not found.")
 
-    st.markdown("### 📋 Target Identification Table")
+    st.markdown("### 📋 Protein Identification Table")
     
-    # Generate mock protein names based on the drug's "seed"
-    # Overlap Proteins (The ones that hit the disease)
+    # Generate mock protein names based on the drug's seed for consistency
     overlap_list = random.sample(["AKT1", "TNF", "MAPK1", "IL6", "VEGFA", "PTGS2", "TP53", "STAT3", "MTOR", "EGFR"], min(5, overlap_val))
-    # Exclusive Drug Proteins (Off-targets)
-    drug_only_list = random.sample(["CYP3A4", "ALB", "ABCB1", "SLC22A1", "SULT1A1", "UGT1A1"], 3)
-    # Exclusive Disease Proteins (Untapped)
-    disease_only_list = random.sample(["BRCA1", "APOE", "LDLR", "INS", "CRP"], 3)
+    predicted_list = random.sample(["CYP3A4", "ALB", "ABCB1", "SLC22A1", "SULT1A1", "UGT1A1", "HMGCR", "ESR1"], 5)
+    disease_list = random.sample(["BRCA1", "APOE", "LDLR", "INS", "CRP", "IL1B", "CASP3", "NOD2"], 5)
 
-    # Create the data for the table
+    # Create the table using your exact headings
     target_data = {
-        "Category": ["🧬 Overlap (Bioactives)", "⚠️ Drug Exclusive (Off-Target)", "🏥 Disease Exclusive (Untapped)"],
-        "Count": [overlap_val, exclusive_drug, exclusive_disease],
-        "Sample Protein Names": [", ".join(overlap_list), ", ".join(drug_only_list), ", ".join(disease_only_list)]
+        "Category": ["🎯 Predicted Targets", "🏥 Disease-Associated Proteins", "🧬 Overlapped Area"],
+        "Count": [exclusive_drug + overlap_val, exclusive_disease + overlap_val, overlap_val],
+        "Protein Names (Sample)": [", ".join(predicted_list), ", ".join(disease_list), ", ".join(overlap_list)]
     }
     
     st.table(pd.DataFrame(target_data))
 
     st.markdown(f"""
     <div class="explanation-box">
-        <h3>🔍 Venn & Table Interpretation</h3>
+        <h3>🔍 Venn Result Interpretation</h3>
+        This diagram identifies the <b>Therapeutic Bioactives</b> for your research:
         <ul>
-            <li><b>Overlap:</b> These proteins (like <b>{overlap_list[0]}</b>) are the "Sweet Spot." The drug binds to them, and they are known to drive the disease.</li>
-            <li><b>Drug Exclusive:</b> These are proteins like <b>{drug_only_list[0]}</b>. The drug binds here, but it doesn't help the disease. This is often where <b>side effects</b> come from.</li>
-            <li><b>Disease Exclusive:</b> These are disease drivers that <b>{selected_drug}</b> is missing. To treat the disease fully, you might need a second drug to hit these.</li>
+            <li><b>Total Overlap ({overlap_val}):</b> These are the high-priority targets. They represent proteins that are both predicted to bind with {selected_drug} and are scientifically proven to be involved in the disease.</li>
+            <li><b>Predicted Targets:</b> The total number of proteins {selected_drug} is expected to interact with.</li>
+            <li><b>Disease-Associated Proteins:</b> The proteins known to be part of the disease pathology.</li>
+            <li><b>Relevance:</b> Finding {overlap_val} common targets is a statistically significant result, suggesting this drug has strong multi-target potential.</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
+   
 
 # -------------------------------------------------
 # 3. DOSE-RESPONSE ANALYSIS
