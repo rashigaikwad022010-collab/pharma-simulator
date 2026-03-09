@@ -38,7 +38,7 @@ module = st.sidebar.selectbox(
 )
 
 # -------------------------------------------------
-# DRUG & PROTEIN DATABASE (Your Original Lists)
+# DRUG & PROTEIN DATABASE
 # -------------------------------------------------
 drug_list = [
 "Aspirin","Ibuprofen","Paracetamol","Diclofenac","Naproxen",
@@ -61,52 +61,47 @@ drug_list = [
 "Ondansetron","Domperidone","Metoclopramide"
 ]
 
-protein_list = [
-"COX2","AKT1","MAPK1","PI3K","mTOR","EGFR","JAK2","STAT3","NFkB",
-"TNF","IL6","BRAF","MEK1","ERK2","SRC","VEGFA","HIF1A","TP53",
-"CDK2","CDK4","GSK3B","PTEN","FOXO3","MYC","CASP3","CASP9",
-"MMP9","NOS3","CXCL8","TGFb1"
-]
+# Mapping Proteins to biological categories to drive the Hill Coefficient logic
+protein_categories = {
+    "COX2": "Enzyme", "AKT1": "Kinase", "MAPK1": "Kinase", "PI3K": "Enzyme",
+    "mTOR": "Enzyme", "EGFR": "Receptor", "JAK2": "Kinase", "STAT3": "Transcription Factor",
+    "NFkB": "Transcription Factor", "TNF": "Cytokine", "IL6": "Cytokine", "BRAF": "Kinase",
+    "MEK1": "Kinase", "ERK2": "Kinase", "SRC": "Kinase", "VEGFA": "Growth Factor",
+    "HIF1A": "Transcription Factor", "TP53": "Tumor Suppressor", "CDK2": "Kinase",
+    "CDK4": "Kinase", "GSK3B": "Kinase", "PTEN": "Enzyme", "FOXO3": "Transcription Factor",
+    "MYC": "Transcription Factor", "CASP3": "Protease", "CASP9": "Protease",
+    "MMP9": "Enzyme", "NOS3": "Enzyme", "CXCL8": "Cytokine", "TGFb1": "Growth Factor"
+}
+protein_list = list(protein_categories.keys())
 
 # -------------------------------------------------
-# 1. NETWORK PHARMACOLOGY (UPGRADED)
-# -------------------------------------------------
-# -------------------------------------------------
-# 1. NETWORK PHARMACOLOGY (FIXED)
+# 1. NETWORK PHARMACOLOGY
 # -------------------------------------------------
 if module == "Network Pharmacology Explorer":
     st.header("Network Pharmacology Explorer")
     drug = st.selectbox("Select Drug", drug_list)
     
     net = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
-    
-    # 1. Add the Drug node first
     net.add_node(drug, label=drug, color="#ff4b4b", size=25)
     
-    # 2. Pre-select and add all Target nodes first to avoid the AssertionError
     targets = random.sample(protein_list, 15)
     for t in targets:
         net.add_node(t, label=t, color="#1c83e1")
     
-    # 3. Now add the edges (connections)
     for t in targets:
-        # Connect drug to protein
         net.add_edge(drug, t)
-        
-        # Connect protein to another protein (only if it exists in our target list)
         if random.random() > 0.8:
             other_p = random.choice(targets)
-            if other_p != t:  # Avoid connecting a protein to itself
+            if other_p != t:
                 net.add_edge(t, other_p)
 
     net.toggle_physics(True)
     net.save_graph("network.html")
     HtmlFile = open("network.html", 'r', encoding='utf-8')
     components.html(HtmlFile.read(), height=550)
-        
 
 # -------------------------------------------------
-# 2. MOLECULAR DOCKING (ENHANCED UI)
+# 2. MOLECULAR DOCKING
 # -------------------------------------------------
 elif module == "Molecular Docking Simulator":
     st.header("Molecular Docking Simulator")
@@ -125,16 +120,14 @@ elif module == "Molecular Docking Simulator":
         with col2:
             st.subheader("Docking Poses")
             st.table(df)
-
             residues = ["ARG120","TYR355","SER530","GLY526","LEU352","VAL349","TRP387","HIS90"]
             interaction_types = ["Hydrogen Bond", "Hydrophobic", "Van der Waals", "Pi-Pi Stacking"]
-            
             res_df = pd.DataFrame([{"Residue": r, "Interaction": random.choice(interaction_types)} for r in residues])
             st.subheader("Key Binding Residues")
             st.table(res_df)
 
 # -------------------------------------------------
-# 3. CUSTOM DOCKING (YOUR ORIGINAL LOGIC)
+# 3. CUSTOM DOCKING
 # -------------------------------------------------
 elif module == "Custom Docking Simulator":
     st.header("Custom Docking Simulator")
@@ -149,62 +142,57 @@ elif module == "Custom Docking Simulator":
         st.dataframe(df)
 
 # -------------------------------------------------
-# 4. DOSE RESPONSE (UPGRADED WITH LOG SCALE)
+# 4. DOSE RESPONSE (CONNECTED LOGIC)
 # -------------------------------------------------
 elif module == "Dose Response Simulator":
     st.header("📈 Connected Pharmacodynamics Model")
     
-    st.info("This module now calculates Potency (EC50) based on your Binding Energy input.")
-
     col1, col2 = st.columns(2)
     
     with col1:
         drug_name = st.text_input("Compound Name", "Experimental Lead")
-        # User inputs the energy they got from the Docking module
+        target_protein = st.selectbox("Select Target Protein", protein_list)
         user_energy = st.number_input("Enter Binding Energy (kcal/mol)", value=-9.0, step=0.1)
         
-        # --- THE INTERACTION LOGIC ---
-        # We convert Energy to a Potency value. 
-        # Lower energy (more negative) = smaller EC50 (stronger drug).
-        # Formula: We map -12kcal/mol to 1nM and -5kcal/mol to 100nM
-        calculated_ec50 = np.interp(user_energy, [-12, -5], [1, 100])
+        # Potency and Efficacy calculation based on Energy
+        calc_ec50 = np.interp(user_energy, [-12, -5], [1, 150])
+        calc_emax = np.interp(user_energy, [-12, -5], [100, 70])
         
-        # We assume tighter binding also leads to better receptor activation (Emax)
-        calculated_emax = np.interp(user_energy, [-12, -5], [100, 70])
-        
-        st.metric("Predicted EC50 (Potency)", f"{round(calculated_ec50, 2)} nM")
-        st.metric("Predicted Emax (Efficacy)", f"{round(calculated_emax, 1)} %")
+        st.metric("Predicted EC50", f"{round(calc_ec50, 2)} nM")
+        st.metric("Predicted Emax", f"{round(calc_emax, 1)} %")
 
     with col2:
-        # User can still fine-tune the Hill Coefficient
-        hill_coeff = st.slider("Hill Coefficient (nH)", 0.5, 4.0, 1.5, 
-                               help="How 'sharp' the response is. 1.0 is standard.")
+        # Determine Hill Coefficient based on Protein Type
+        p_type = protein_categories.get(target_protein, "Enzyme")
         
+        if p_type in ["Receptor", "Transcription Factor"]:
+            auto_hill = 2.5
+        elif p_type == "Kinase":
+            auto_hill = 1.5
+        else:
+            auto_hill = 1.0
+            
+        st.write(f"**Target Analysis:** {target_protein} is a **{p_type}**.")
+        hill_coeff = st.slider("Hill Coefficient (nH)", 0.5, 4.0, float(auto_hill))
         st.write("---")
-        st.write(f"**Research Note:** Because your energy is **{user_energy}**, the drug is modeled as a **{'High' if user_energy < -8 else 'Moderate'}** potency compound.")
+        st.info(f"The Hill Coefficient was auto-set to {auto_hill} because {target_protein} is a {p_type}.")
 
-    # Generate the Curve using the calculated values
+    # Generate Hill Equation Curve
     conc = np.logspace(-1, 3, 100) 
-    # The Hill Equation
-    response = (calculated_emax * (conc**hill_coeff)) / ( (calculated_ec50**hill_coeff) + (conc**hill_coeff) )
+    response = (calc_emax * (conc**hill_coeff)) / ( (calc_ec50**hill_coeff) + (conc**hill_coeff) )
 
-    # Plotting
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=conc, y=response, mode='lines', 
-                             line=dict(color='#00CC96', width=4),
-                             name=f"Model: {drug_name}"))
-    
+    fig.add_trace(go.Scatter(x=conc, y=response, mode='lines', line=dict(color='#00CC96', width=4)))
     fig.update_layout(
-        title=f"Automated Dose-Response for {drug_name}",
+        title=f"Dose-Response: {drug_name} acting on {target_protein}",
         xaxis=dict(title="Concentration (nM) [Log Scale]", type="log"),
-        yaxis=dict(title="Biological Response (%)", range=[0, 110]),
-        template="plotly_white",
-        height=500
+        yaxis=dict(title="Response (%)", range=[0, 110]),
+        template="plotly_white"
     )
-    
     st.plotly_chart(fig, use_container_width=True)
+
 # -------------------------------------------------
-# 5. PATHWAY NETWORK (YOUR ORIGINAL LOGIC)
+# 5. PROTEIN PATHWAY
 # -------------------------------------------------
 elif module == "Protein Pathway Simulator":
     st.header("Protein Pathway Network")
@@ -217,30 +205,25 @@ elif module == "Protein Pathway Simulator":
         for p in proteins:
             G.add_node(p)
             G.add_edge(drug, p)
-        
         fig, ax = plt.subplots()
         nx.draw(G, with_labels=True, node_color="lightblue", node_size=2500, font_weight='bold')
         st.pyplot(fig)
 
 # -------------------------------------------------
-# 6. VIRTUAL SCREENING (UPGRADED WITH HIGHLIGHTS)
+# 6. VIRTUAL SCREENING
 # -------------------------------------------------
 elif module == "Virtual Drug Screening":
     st.header("Virtual Drug Screening")
-    
     if st.button("Start Screening"):
         drugs = random.sample(drug_list, 10)
         prots = random.sample(protein_list, 5)
         results = []
-
         for d in drugs:
             for p in prots:
                 energy = round(random.uniform(-10.5, -4.0), 2)
                 results.append([d, p, energy])
-
         df = pd.DataFrame(results, columns=["Drug", "Protein", "Binding Energy"])
         st.dataframe(df.style.background_gradient(subset=['Binding Energy'], cmap='RdYlGn_r'))
-
         best = df.sort_values("Binding Energy").head(5)
         st.subheader("Top Binding Results (Leads)")
         st.dataframe(best)
