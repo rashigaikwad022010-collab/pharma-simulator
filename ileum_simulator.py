@@ -1,241 +1,253 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
+from scipy.optimize import curve_fit
 
-# -----------------------------
-# PAGE CONFIG
-# -----------------------------
-st.set_page_config(
-    page_title="Chicken Ileum Dose–Response Simulator (Virtual Lab)",
-    layout="centered"
+st.set_page_config(layout="wide")
+
+st.title("Virtual Pharmacology Lab Simulator")
+
+# ------------------------------------------------
+# EXPERIMENT SELECTOR
+# ------------------------------------------------
+
+experiment = st.sidebar.selectbox(
+    "Select Experiment",
+    [
+        "Organ Bath Simulator",
+        "3 Point Bioassay",
+        "4 Point Bioassay"
+    ]
 )
 
-# -----------------------------
-# TITLE
-# -----------------------------
-st.title("🧪 Chicken Ileum Dose–Response Simulator (Virtual Lab)")
-st.subheader("Interactive Pharmacology Practical Simulator (Zero Lab Exposure)")
+# ------------------------------------------------
+# THEORY
+# ------------------------------------------------
 
-# -----------------------------
-# GENERAL THEORY
-# -----------------------------
-with st.expander("📘 General Theory"):
-    st.markdown("""
-### Aim
-Study the dose–response relationship of a drug using chicken ileum (virtual lab).  
+with st.expander("Experiment Theory"):
 
-### Principle
-- Smooth muscle in chicken ileum contracts in response to agonists.  
-- Graded doses produce increasing contraction until a maximum response is reached.  
+    st.write("""
+Bioassay is a method used to determine the potency of a drug using a biological system.
 
-### Virtual Lab
-- Students can **simulate experiments** without real tissue.  
-- Responses can be **auto-generated** or **entered manually**.  
-- Drug interactions (competitive/non-competitive antagonists) can be visualized.
+The isolated rat ileum preparation is commonly used in pharmacology laboratories
+to study the effect of drugs on smooth muscle contraction.
+
+Acetylcholine acts on muscarinic receptors producing contraction of intestinal smooth muscle.
+
+Drug doses are added to an organ bath containing the ileum segment and the contraction
+is recorded using a lever attached to a kymograph drum.
+
+Increasing doses of an agonist produce increasing responses until a maximum response is reached.
+
+Plotting log dose against response produces a sigmoid dose response curve from which EC50
+(the dose producing 50% of maximal response) can be determined.
+
+Bioassay techniques compare the response of a standard drug with that of an unknown test drug.
+
+In the three point bioassay two standard doses and one test dose are used.
+
+In the four point bioassay two doses of standard drug (S1, S2) and two doses of test drug
+(T1, T2) are used to calculate relative potency.
 """)
 
-# -----------------------------
-# SELECT EXPERIMENT TYPE
-# -----------------------------
-experiment_type = st.selectbox(
-    "Select Experiment Type",
-    ["Single Drug", "Two Drugs"]
-)
+# ------------------------------------------------
+# ORGAN BATH SIMULATOR
+# ------------------------------------------------
 
-# -----------------------------
-# EXTRA THEORY (CLICKABLE)
-# -----------------------------
-with st.expander("ℹ️ Extra Theory / Tips for this Experiment (Click to Read)"):
-    st.markdown("""
-**Single Drug Experiment:**  
-- Observe graded responses.  
-- Determine EC50 (dose producing 50% max response) and Emax (max contraction).  
-- Compare potency with other drugs.  
+if experiment == "Organ Bath Simulator":
 
-**Two Drugs Experiment:**  
-- Study agonist-antagonist interaction.  
-- Competitive antagonism: rightward shift without changing max response.  
-- Non-competitive antagonism: reduces maximum response.  
-- Learn to interpret dose-response shifts and compare EC50 values.
-""")
+    st.header("Organ Bath Dose Response Experiment")
 
-# -----------------------------
-# STEP-BY-STEP VIRTUAL LAB VISUALS
-# -----------------------------
-# -----------------------------
-# STEP-BY-STEP VIRTUAL LAB VISUALS
-# -----------------------------
-with st.expander("🧪 Virtual Wet Lab Procedure (Virtual Visualization)"):
-
-    st.markdown("### 🐔 Step 1: Isolation of Chicken Ileum")
-    st.info("The chicken is humanely sacrificed. Ileum portion is identified and isolated.")
-
-    st.markdown("### ✂️ Step 2: Cleaning and Trimming")
-    st.info("Mesenteric fat and contents are removed carefully using forceps.")
-
-    st.markdown("### 🛁 Step 3: Mounting in Organ Bath")
-    st.info("The ileum is mounted in an organ bath containing Tyrode solution at 37°C.")
-
-    st.markdown("### 📈 Step 4: Connecting to Transducer")
-    st.info("The tissue is connected to a force transducer for recording contractions.")
-
-    st.markdown("### 💊 Step 5: Drug Addition & Recording")
-    st.info("Graded doses of drug are added and contractions are recorded virtually.")
-
-
-
-
-
-
-# -----------------------------
-# SIMULATION OPTION
-# -----------------------------
-use_simulation = st.checkbox("Use Virtual Lab Simulation (Auto-generate responses)", value=True)
-
-# -----------------------------
-# FUNCTION TO SIMULATE RESPONSE
-# -----------------------------
-def simulate_response(doses, Max=20, EC50=2, n=1):
-    return Max * (np.array(doses)**n) / (EC50**n + np.array(doses)**n)
-
-# -----------------------------
-# SIDEBAR SLIDERS FOR ANIMATION
-# -----------------------------
-st.sidebar.header("⚙️ Simulation Parameters for Animated Plot")
-Max_val = st.sidebar.slider("Maximum Response (Emax)", min_value=5, max_value=50, value=20, step=1)
-EC50_val = st.sidebar.slider("EC50 (µg/mL)", min_value=0.1, max_value=20.0, value=2.0, step=0.1)
-Hill_n = st.sidebar.slider("Hill Coefficient (n)", min_value=0.5, max_value=3.0, value=1.0, step=0.1)
-dose_max = st.sidebar.number_input("Maximum Dose (µg/mL) for Animation", min_value=1, max_value=50, value=10, step=1)
-
-dose_points = np.linspace(0.1, dose_max, 20)
-response_points = Max_val * (dose_points ** Hill_n) / (EC50_val ** Hill_n + dose_points ** Hill_n)
-
-# -----------------------------
-# SINGLE DRUG FLOW
-# -----------------------------
-if experiment_type == "Single Drug":
-    drug_name = st.text_input("Drug Name", value="Acetylcholine")
-    doses = [st.number_input(f"Dose {i} (µg/mL)", min_value=0.0, step=0.1, key=f"sd_dose_{i}") for i in range(1,6)]
-    
-    if use_simulation:
-        responses = simulate_response(doses, Max=Max_val, EC50=EC50_val, n=Hill_n)
-        st.info("Responses auto-generated using virtual lab model")
-    else:
-        responses = [st.number_input(f"Response for Dose {dose}", min_value=0.0, step=0.5, key=f"sd_resp_{i}") for i,dose in enumerate(doses)]
-    
-    if st.button("📊 Generate Dose–Response Curve (Single Drug)"):
-        data = pd.DataFrame({"Dose (µg/mL)": doses, "Response (mm)": responses})
-        data["Log Dose"] = np.log10(data["Dose (µg/mL)"]+1e-6)
-        st.dataframe(data)
-        
-        # Animated interactive Plotly curve
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=[], y=[], mode='lines+markers',
-                                 line=dict(color='blue', width=3),
-                                 marker=dict(size=8),
-                                 hovertemplate=
-                                 "Dose: %{x}<br>Response: %{y}<br>EC50: "+str(EC50_val)+"<br>Emax: "+str(Max_val)+"<extra></extra>"))
-        frames = [go.Frame(data=[go.Scatter(x=doses[:k+1], y=responses[:k+1])]) for k in range(len(doses))]
-        fig.frames = frames
-        fig.update_layout(
-            title=f"Animated Dose–Response Curve of {drug_name}",
-            xaxis_title="Dose (µg/mL)",
-            yaxis_title="Response (mm)",
-            updatemenus=[dict(type="buttons",
-                              showactive=False,
-                              buttons=[dict(label="Play",
-                                            method="animate",
-                                            args=[None, {"frame": {"duration": 200, "redraw": True},
-                                                         "fromcurrent": True}]),
-                                       dict(label="Pause",
-                                            method="animate",
-                                            args=[[None], {"frame": {"duration": 0, "redraw": False},
-                                                           "mode": "immediate"}])])]
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-# -----------------------------
-# TWO DRUG FLOW
-# -----------------------------
-
-else:
-    drug_A = st.text_input("Drug A Name", value="Acetylcholine")
-    drug_B = st.text_input("Drug B Name", value="Atropine")
-    
-    doses_A = [st.number_input(f"Drug A Dose {i}", min_value=0.0, step=0.1, key=f"da_dose_{i}") for i in range(1,6)]
-    doses_B = [st.number_input(f"Drug B Dose {i}", min_value=0.0, step=0.1, key=f"db_dose_{i}") for i in range(1,6)]
-    
-    # ⚠️ Make sure this line is NOT indented more than above
-    interaction = st.selectbox(
-        "Type of interaction",
-        ["Competitive Antagonist", "Non-competitive Antagonist", "No Interaction"]
+    drug = st.selectbox(
+        "Select Drug",
+        [
+            "Acetylcholine",
+            "Acetylcholine + Atropine",
+            "Acetylcholine + Neostigmine",
+            "Histamine"
+        ]
     )
-    
-    if use_simulation:
-        # simulate responses
-        responses_A = simulate_response(doses_A, Max=Max_val, EC50=EC50_val, n=Hill_n)
-        responses_B = simulate_response(doses_B, Max=Max_val*0.8, EC50=EC50_val*1.2, n=Hill_n)
 
-        if interaction == "Competitive Antagonist":
-            avg_B = np.mean(doses_B)
-            EC50_mod = EC50_val * (1 + 3 * avg_B)
-            responses_A_with_B = simulate_response(doses_A, Max=Max_val, EC50=EC50_mod, n=Hill_n)
+    doses = np.array([0.1, 0.3, 1, 3, 10])
 
-        elif interaction == "Non-competitive Antagonist":
-            block_fraction = st.sidebar.slider(
-                "Non-competitive Antagonist Block (%)",
-                min_value=0, max_value=90, value=40, step=5
-            ) / 100
-            responses_A_with_B = responses_A * (1 - block_fraction)
+    def hill(x, Emax, EC50):
+        return Emax * x / (EC50 + x)
 
-        else:
-            responses_A_with_B = responses_A
+    if drug == "Acetylcholine":
+        Emax = 100
+        EC50 = 1
 
-        st.info("Responses auto-generated using virtual lab model")
+    elif drug == "Acetylcholine + Atropine":
+        Emax = 100
+        EC50 = 3
 
+    elif drug == "Acetylcholine + Neostigmine":
+        Emax = 120
+        EC50 = 0.5
 
-       
-    else:
-        responses_A = [st.number_input(f"Response for Drug A Dose {dose}", min_value=0.0, step=0.5, key=f"da_resp_{i}") for i,dose in enumerate(doses_A)]
-        responses_B = [st.number_input(f"Response for Drug B Dose {dose}", min_value=0.0, step=0.5, key=f"db_resp_{i}") for i,dose in enumerate(doses_B)]
-        responses_A_with_B = responses_A
-    
-    if st.button("📊 Generate Dose–Response Curve (Two Drugs)"):
-        data_A = pd.DataFrame({"Dose (µg/mL)": doses_A, "Response (mm)": responses_A, "Response with B": responses_A_with_B})
-        data_B = pd.DataFrame({"Dose (µg/mL)": doses_B, "Response (mm)": responses_B})
-        data_A["Log Dose"] = np.log10(data_A["Dose (µg/mL)"]+1e-6)
-        data_B["Log Dose"] = np.log10(data_B["Dose (µg/mL)"]+1e-6)
-        st.subheader("Drug A Data")
-        st.dataframe(data_A)
-        st.subheader("Drug B Data")
-        st.dataframe(data_B)
-        
-        # Animated Plotly for two-drug curves
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=[], y=[], mode='lines+markers', name=f"{drug_A} Alone",
-                                 line=dict(color='blue', width=3), marker=dict(size=8),
-                                 hovertemplate="Dose: %{x}<br>Response: %{y}<extra></extra>"))
-        frames = [go.Frame(data=[
-            go.Scatter(x=doses_A[:k+1], y=responses_A[:k+1], name=f"{drug_A} Alone"),
-            go.Scatter(x=doses_A[:k+1], y=responses_A_with_B[:k+1], name=f"{drug_A} with {drug_B}"),
-            go.Scatter(x=doses_B[:k+1], y=responses_B[:k+1], name=f"{drug_B} Alone")
-        ]) for k in range(len(doses_A))]
-        fig.frames = frames
-        fig.update_layout(
-            title="Animated Dose–Response Curves (Two Drugs)",
-            xaxis_title="Dose (µg/mL)",
-            yaxis_title="Response (mm)",
-            updatemenus=[dict(type="buttons",
-                              showactive=False,
-                              buttons=[dict(label="Play",
-                                            method="animate",
-                                            args=[None, {"frame": {"duration": 200, "redraw": True},
-                                                         "fromcurrent": True}]),
-                                       dict(label="Pause",
-                                            method="animate",
-                                            args=[[None], {"frame": {"duration": 0, "redraw": False},
-                                                           "mode": "immediate"}])])]
-        )
-        st.plotly_chart(fig, use_container_width=True)
+    elif drug == "Histamine":
+        Emax = 90
+        EC50 = 1.2
 
+    responses = hill(doses, Emax, EC50) + np.random.normal(0, 3, len(doses))
+
+    percent = responses / np.max(responses) * 100
+
+    table = pd.DataFrame({
+        "Dose": doses,
+        "Response": responses,
+        "% Response": percent
+    })
+
+    st.subheader("Experimental Data")
+
+    st.dataframe(table)
+
+    # ---------------------------
+    # DRUM RECORDING
+    # ---------------------------
+
+    st.subheader("Organ Bath Drum Recording")
+
+    time = np.linspace(0, 60, 600)
+
+    trace = np.zeros_like(time)
+
+    for i, r in enumerate(responses):
+
+        start = i * 100 + 20
+
+        wave = np.exp(-np.linspace(0, 2, 40)) * r / 10
+
+        trace[start:start + 40] = wave
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=time, y=trace, mode="lines"))
+
+    fig.update_layout(
+        xaxis_title="Time",
+        yaxis_title="Tension"
+    )
+
+    st.plotly_chart(fig)
+
+    # ---------------------------
+    # DOSE RESPONSE CURVE
+    # ---------------------------
+
+    st.subheader("Log Dose Response Curve")
+
+    logdose = np.log10(doses)
+
+    def sigmoid(x, Emax, EC50):
+
+        return Emax / (1 + 10 ** (EC50 - x))
+
+    popt, _ = curve_fit(sigmoid, logdose, percent)
+
+    x = np.linspace(min(logdose), max(logdose), 100)
+
+    curve1 = sigmoid(x, *popt)
+
+    curve2 = sigmoid(x, popt[0], popt[1] + 0.5)
+
+    fig2 = go.Figure()
+
+    fig2.add_trace(go.Scatter(
+        x=logdose,
+        y=percent,
+        mode="markers",
+        name="Observed"
+    ))
+
+    fig2.add_trace(go.Scatter(
+        x=x,
+        y=curve1,
+        name="ACh Curve"
+    ))
+
+    fig2.add_trace(go.Scatter(
+        x=x,
+        y=curve2,
+        name="ACh + Atropine"
+    ))
+
+    fig2.update_layout(
+        xaxis_title="Log Dose",
+        yaxis_title="% Response"
+    )
+
+    st.plotly_chart(fig2)
+
+    EC50_value = 10 ** popt[1]
+
+    st.write("Estimated EC50:", round(EC50_value, 3))
+
+# ------------------------------------------------
+# THREE POINT BIOASSAY
+# ------------------------------------------------
+
+elif experiment == "3 Point Bioassay":
+
+    st.header("Three Point Bioassay")
+
+    st.write("Sequence: S1 → T → S2")
+
+    S1 = st.number_input("Response S1", value=10.0)
+
+    T = st.number_input("Response Test", value=15.0)
+
+    S2 = st.number_input("Response S2", value=20.0)
+
+    table = pd.DataFrame({
+        "Dose": ["S1", "T", "S2"],
+        "Response": [S1, T, S2]
+    })
+
+    st.dataframe(table)
+
+    potency = (T - S1) / (S2 - S1)
+
+    st.write("Relative Potency:", round(potency, 3))
+
+# ------------------------------------------------
+# FOUR POINT BIOASSAY
+# ------------------------------------------------
+
+elif experiment == "4 Point Bioassay":
+
+    st.header("Four Point Bioassay")
+
+    st.write("Standard doses: S1, S2   Test doses: T1, T2")
+
+    S1 = st.number_input("Response S1", value=10.0)
+
+    S2 = st.number_input("Response S2", value=20.0)
+
+    T1 = st.number_input("Response T1", value=12.0)
+
+    T2 = st.number_input("Response T2", value=18.0)
+
+    table = pd.DataFrame({
+        "Dose": ["S1", "S2", "T1", "T2"],
+        "Response": [S1, S2, T1, T2]
+    })
+
+    st.dataframe(table)
+
+    potency = ((T2 - S2) + (T1 - S1)) / ((T2 - T1) + (S2 - S1))
+
+    st.write("Relative Potency:", round(potency, 3))
+
+    st.subheader("Latin Square Sequence")
+
+    latin = [
+        ["S1", "S2", "T1", "T2"],
+        ["S2", "T1", "T2", "S1"],
+        ["T1", "T2", "S1", "S2"],
+        ["T2", "S1", "S2", "T1"]
+    ]
+
+    st.table(latin)
