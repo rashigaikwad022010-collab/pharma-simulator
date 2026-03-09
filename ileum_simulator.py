@@ -152,25 +152,57 @@ elif module == "Custom Docking Simulator":
 # 4. DOSE RESPONSE (UPGRADED WITH LOG SCALE)
 # -------------------------------------------------
 elif module == "Dose Response Simulator":
-    st.header("Dose Response Simulator")
-    drug = st.text_input("Drug", "Experimental Compound")
+    st.header("📈 Connected Pharmacodynamics Model")
     
-    c1, c2 = st.columns(2)
-    with c1:
-        ec50 = st.slider("EC50 (Potency)", 1, 100, 50)
-    with c2:
-        hill = st.slider("Hill Coefficient (nH)", 0.5, 3.0, 1.0)
-        max_effect = st.slider("Max Effect (%)", 10, 100, 90)
+    st.info("This module now calculates Potency (EC50) based on your Binding Energy input.")
 
-    # Hill Equation for scientific accuracy
-    concentration = np.logspace(-1, 2.5, 100)
-    effect = (max_effect * (concentration**hill)) / ( (ec50**hill) + (concentration**hill) )
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        drug_name = st.text_input("Compound Name", "Experimental Lead")
+        # User inputs the energy they got from the Docking module
+        user_energy = st.number_input("Enter Binding Energy (kcal/mol)", value=-9.0, step=0.1)
+        
+        # --- THE INTERACTION LOGIC ---
+        # We convert Energy to a Potency value. 
+        # Lower energy (more negative) = smaller EC50 (stronger drug).
+        # Formula: We map -12kcal/mol to 1nM and -5kcal/mol to 100nM
+        calculated_ec50 = np.interp(user_energy, [-12, -5], [1, 100])
+        
+        # We assume tighter binding also leads to better receptor activation (Emax)
+        calculated_emax = np.interp(user_energy, [-12, -5], [100, 70])
+        
+        st.metric("Predicted EC50 (Potency)", f"{round(calculated_ec50, 2)} nM")
+        st.metric("Predicted Emax (Efficacy)", f"{round(calculated_emax, 1)} %")
 
+    with col2:
+        # User can still fine-tune the Hill Coefficient
+        hill_coeff = st.slider("Hill Coefficient (nH)", 0.5, 4.0, 1.5, 
+                               help="How 'sharp' the response is. 1.0 is standard.")
+        
+        st.write("---")
+        st.write(f"**Research Note:** Because your energy is **{user_energy}**, the drug is modeled as a **{'High' if user_energy < -8 else 'Moderate'}** potency compound.")
+
+    # Generate the Curve using the calculated values
+    conc = np.logspace(-1, 3, 100) 
+    # The Hill Equation
+    response = (calculated_emax * (conc**hill_coeff)) / ( (calculated_ec50**hill_coeff) + (conc**hill_coeff) )
+
+    # Plotting
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=concentration, y=effect, mode='lines', name='Effect Curve'))
-    fig.update_layout(title=f"Dose Response for {drug}", xaxis_type="log", xaxis_title="Concentration", yaxis_title="Effect %")
+    fig.add_trace(go.Scatter(x=conc, y=response, mode='lines', 
+                             line=dict(color='#00CC96', width=4),
+                             name=f"Model: {drug_name}"))
+    
+    fig.update_layout(
+        title=f"Automated Dose-Response for {drug_name}",
+        xaxis=dict(title="Concentration (nM) [Log Scale]", type="log"),
+        yaxis=dict(title="Biological Response (%)", range=[0, 110]),
+        template="plotly_white",
+        height=500
+    )
+    
     st.plotly_chart(fig, use_container_width=True)
-
 # -------------------------------------------------
 # 5. PATHWAY NETWORK (YOUR ORIGINAL LOGIC)
 # -------------------------------------------------
