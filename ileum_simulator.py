@@ -21,6 +21,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🧬 Pharmaceutical Research Simulator")
+# Initialize session state so modules can talk to each other
+if 'selected_energy' not in st.session_state:
+    st.session_state.selected_energy = -7.0
+if 'selected_drug' not in st.session_state:
+    st.session_state.selected_drug = "None"
+if 'selected_target' not in st.session_state:
+    st.session_state.selected_target = "COX2"
 
 # -------------------------------------------------
 # SIDEBAR MODULE SELECTOR
@@ -196,114 +203,107 @@ elif module == "Dose Response Simulator":
 # 5. PROTEIN PATHWAY SIMULATOR (THE IMPACT)
 # -------------------------------------------------
 elif module == "Protein Pathway Simulator":
-    st.header("⚡ Advanced Signal Cascade & Impact Analysis")
+    st.header("⚡ Step 3: Pathway Impact Analysis")
     
-    # --- 1. AUTOMATED INPUTS ---
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        st.subheader("Configuration")
-        energy_input = st.number_input("Enter Binding Energy (kcal/mol)", value=-7.0, max_value=0.0, step=0.1)
-        target_p = st.selectbox("Select Primary Target", protein_list)
-        
-        # LOGIC: Convert Energy to Inhibition %
-        # -12 kcal/mol (Very Strong) -> 100%, -4 kcal/mol (Weak) -> 20%
-        auto_inhibition = np.interp(energy_input, [-12, -4], [100, 20])
-        p_type = protein_categories.get(target_p, "Enzyme")
-        # Receptors trigger long cascades (5 steps), Enzymes are usually direct (3 steps)
-        auto_depth = 5 if p_type in ["Receptor", "Transcription Factor", "Growth Factor"] else 3
-        
-        st.info(f"**Target Class:** {p_type}\n\n**Calculated Hit:** {round(auto_inhibition)}% inhibition at source.")
+    # 1. DATA PULL (Connecting to the Screening result)
+    energy = st.session_state.selected_energy
+    target = st.session_state.selected_target
+    drug_name = st.session_state.selected_drug
 
-    # --- 2. INTERACTIVE VISUALIZATION ---
-    with col2:
-        st.subheader("Molecular Chain Interaction")
-        path_net = Network(height="400px", width="100%", bgcolor="#ffffff", font_color="black", directed=True)
-        
-        # Create a logical chain of proteins
-        chain = [target_p] + random.sample([p for p in protein_list if p != target_p], auto_depth - 1)
-        
-        for i in range(len(chain)):
-            strength = auto_inhibition * (0.8**i) # 20% decay per step
-            
-            # Color logic: Red for target, Blue for downstream
-            n_color = "#ff4b4b" if i == 0 else "#1c83e1"
-            n_size = 30 if i == 0 else 20
-            
-            path_net.add_node(
-                chain[i], 
-                label=f"{chain[i]}\n{round(strength)}%", 
-                title=f"Protein: {chain[i]} | Signal: {round(strength)}%",
-                color=n_color,
-                size=n_size,
-                shape="dot"
-            )
-            
-            if i > 0:
-                path_net.add_edge(chain[i-1], chain[i], width=3, color="#848484", arrows="to")
+    st.info(f"🔬 **Analyzing Lead:** {drug_name} | **Primary Target:** {target}")
 
-        path_net.toggle_physics(True)
-        path_net.save_graph("pathway_map.html")
-        HtmlFile = open("pathway_map.html", 'r', encoding='utf-8')
-        components.html(HtmlFile.read(), height=450)
+    # 2. AUTOMATION LOGIC
+    # Map Energy to Inhibition (Stronger energy = Higher starting bar)
+    inhibition = np.interp(energy, [-12, -4], [100, 20])
+    p_type = protein_categories.get(target, "Enzyme")
+    # Complexity of the chain depends on protein type
+    depth = 5 if p_type in ["Receptor", "Transcription Factor", "Growth Factor"] else 3
 
-    # --- 3. THE "WHAT DOES THIS MEAN?" SECTION ---
+    # 3. THE BAR GRAPH (Scientific View)
+    st.subheader("📊 Signal Decay Graph")
+    steps = [f"Step {i+1}" for i in range(depth)]
+    signal_values = [inhibition * (0.8**i) for i in range(depth)]
+
+    fig_bar = go.Figure(go.Bar(
+        x=steps, 
+        y=signal_values, 
+        marker_color='firebrick',
+        text=[f"{round(s)}%" for s in signal_values],
+        textposition='auto'
+    ))
+    fig_bar.update_layout(
+        title=f"Inhibition Strength: {drug_name} Cascade",
+        yaxis=dict(title="Remaining Signal (%)", range=[0, 100]),
+        template="plotly_white",
+        height=350
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    # 4. THE INTERACTIVE MAP (Visual View)
+    st.subheader("🔗 Biological Chain Interaction")
+    path_net = Network(height="400px", width="100%", bgcolor="#ffffff", font_color="black", directed=True)
+    
+    # Create a unique chain based on the selected target
+    chain = [target] + random.sample([p for p in protein_list if p != target], depth - 1)
+    
+    for i in range(len(chain)):
+        strength = inhibition * (0.8**i)
+        n_color = "#ff4b4b" if i == 0 else "#1c83e1" # Red for target, Blue for others
+        path_net.add_node(chain[i], label=f"{chain[i]}\n{round(strength)}%", color=n_color, size=25 if i==0 else 18)
+        if i > 0:
+            path_net.add_edge(chain[i-1], chain[i], width=3, color="#848484", arrows="to")
+
+    path_net.toggle_physics(True)
+    path_net.save_graph("pathway_map.html")
+    with open("pathway_map.html", 'r', encoding='utf-8') as f:
+        components.html(f.read(), height=450)
+
+    # 5. AUTOMATED INTERPRETATION
     st.divider()
-    st.subheader("📊 Results Interpretation")
+    final_impact = signal_values[-1]
     
-    final_impact = auto_inhibition * (0.8**(auto_depth-1))
-    
-    detail_col1, detail_col2 = st.columns(2)
-    
-    with detail_col1:
+    col_a, col_b = st.columns(2)
+    with col_a:
         st.markdown(f"""
-        ### What the Graph Says:
-        * **The Red Node ({target_p}):** This is where your drug binds. At **{energy_input} kcal/mol**, it successfully shuts down **{round(auto_inhibition)}%** of this protein's activity.
-        * **The Blue Nodes:** These are 'downstream' proteins. They don't touch the drug, but they lose power because the first protein is blocked.
-        * **Signal Decay:** Every arrow represents a loss of biological signal. Your model assumes a **20% loss** of efficiency at every step in the chain.
+        ### 🧐 Understanding the Graph
+        * **The Drop:** Your drug starts at **{round(inhibition)}%** inhibition. Because biology isn't perfect, the signal drops **20%** at every step.
+        * **The Logic:** In a **{p_type}** pathway, there are **{depth} steps** before the final biological effect is achieved.
         """)
-
-    with detail_col2:
-        st.markdown(f"""
-        ### The Pathway Verdict:
-        * **Final Physiological Impact:** {round(final_impact)}%
-        * **Clinical Outlook:** """)
-        if final_impact > 60:
-            st.success("✅ **High Efficacy:** The drug is strong enough to trigger a major biological change even through a long pathway.")
-        elif final_impact > 30:
-            st.warning("⚠️ **Moderate Efficacy:** The effect is significantly weakened. Consider a higher dose or a stronger binding lead.")
+    with col_b:
+        st.markdown(f"### 🧪 The Verdict")
+        if final_impact > 50:
+            st.success(f"**POTENT:** {drug_name} is strong enough to maintain a **{round(final_impact)}%** effect at the end of the chain.")
         else:
-            st.error("❌ **Low Efficacy:** The signal 'dies' before reaching the end of the pathway. This drug may fail in clinical trials.")
- 
-      
-       
-
+            st.warning(f"**WEAK:** The effect drops to **{round(final_impact)}%**. This lead may need further chemical optimization.")
 # -------------------------------------------------
 # 6. VIRTUAL DRUG SCREENING (THE DISCOVERY)
 # -------------------------------------------------
-elif module == "Virtual Drug Screening":
-    st.header("🧪 Advanced Virtual Screening & ADME")
-    st.write("Screening for Binding Affinity + Drug-Likeness (Lipinski's Rules)")
 
+           elif module == "Virtual Drug Screening":
+    st.header("🧪 Advanced Screening & Lead Selection")
+    
     if st.button("🚀 Run High-Throughput Screen"):
         test_drugs = random.sample(drug_list, 10)
         target = random.choice(protein_list)
-        
         results = []
         for d in test_drugs:
             energy = round(random.uniform(-11.0, -4.0), 2)
-            # Creative Approach: Add "Drug-Likeness" scores
-            mw = random.randint(200, 600) # Molecular Weight
-            logp = round(random.uniform(1, 6), 1) # Lipophilicity
-            
-            # Check Lipinski's Rule (Simplified)
+            mw = random.randint(200, 600)
+            logp = round(random.uniform(1, 6), 1)
             pass_rules = "✅ Pass" if mw < 500 and logp < 5 else "❌ Fail"
-            
             results.append([d, target, energy, mw, logp, pass_rules])
+        st.session_state.screening_results = pd.DataFrame(results, columns=["Drug", "Target", "Energy", "MW", "LogP", "Lipinski"])
 
-        df = pd.DataFrame(results, columns=["Drug", "Target", "Energy", "Mol. Weight", "LogP", "Lipinski Status"])
+    if 'screening_results' in st.session_state:
+        df = st.session_state.screening_results
+        st.dataframe(df.style.apply(lambda x: ['background-color: #d4edda' if x['Lipinski'] == "✅ Pass" and x['Energy'] < -8 else '' for i in x], axis=1))
         
-        # Highlight the best candidates that also pass the rules
-        st.subheader(f"Screening Results for {target}")
-        st.dataframe(df.style.apply(lambda x: ['background-color: lightgreen' if x['Lipinski Status'] == "✅ Pass" and x['Energy'] < -8 else '' for i in x], axis=1))
-        
-        st.success("Analysis Complete: Green rows represent 'Strong Binders' that are also safe for human absorption.")
+        # NEW: The connection point
+        st.subheader("Connect to Research Pipeline")
+        selection = st.selectbox("Pick a Lead Compound to test in other modules:", df['Drug'])
+        if st.button("Set as Active Lead"):
+            row = df[df['Drug'] == selection].iloc[0]
+            st.session_state.selected_drug = row['Drug']
+            st.session_state.selected_energy = row['Energy']
+            st.session_state.selected_target = row['Target']
+            st.success(f"Linked {selection} to Dose-Response and Pathway Simulators!")
