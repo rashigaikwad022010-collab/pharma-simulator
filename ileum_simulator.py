@@ -7,141 +7,190 @@ from pyvis.network import Network
 import streamlit.components.v1 as components
 
 # --- UI SETTINGS ---
-st.set_page_config(page_title="Universal Pharma Simulator", layout="wide", page_icon="🧬")
+st.set_page_config(page_title="Advanced Pharma Pipeline", layout="wide", page_icon="🧬")
 
 # Professional Styling
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
     .stButton>button { border-radius: 8px; background-color: #007bff; color: white; font-weight: bold; }
-    .explanation-box { background-color: #f1f3f5; padding: 20px; border-radius: 10px; border-left: 5px solid #007bff; margin: 15px 0; }
+    .explanation-box { background-color: #ffffff; padding: 25px; border-radius: 12px; border-left: 6px solid #007bff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin: 20px 0; }
+    .conclusion-card { padding: 30px; border-radius: 15px; border: 2px solid #eee; margin-top: 30px; }
+    .go-signal { background-color: #d4edda; border-color: #28a745; color: #155724; }
+    .nogo-signal { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🧬 Universal Pharmaceutical Research Pipeline")
+st.title("🧬 Advanced Pharmaceutical Research & Docking Pipeline")
 
-# --- EXPANDED DATABASE ---
+# --- DATABASE ---
 drug_db = {
-    "Statins (Cholesterol)": ["Atorvastatin", "Simvastatin", "Rosuvastatin"],
-    "Antihistamines (Allergy)": ["Loratadine", "Cetirizine", "Diphenhydramine"],
-    "NSAIDs (Pain/Inflam)": ["Aspirin", "Ibuprofen", "Naproxen"],
-    "Antipsychotics/Mood": ["Quetiapine", "Sertraline", "Risperidone"],
+    "Statins": ["Atorvastatin", "Simvastatin", "Rosuvastatin"],
+    "Antihistamines": ["Loratadine", "Cetirizine", "Diphenhydramine"],
+    "NSAIDs": ["Aspirin", "Ibuprofen", "Naproxen"],
     "Antidiabetics": ["Metformin", "Glipizide"],
 }
-
 protein_categories = {
-    "CASP3": "Enzyme (Apoptosis/Cell Death)", 
-    "H1-Receptor": "Receptor (Allergy Response)", 
-    "HMG-CoA": "Enzyme (Cholesterol Production)",
-    "COX2": "Enzyme (Pain/Inflammation)", 
-    "EGFR": "Receptor (Cancer/Growth)", 
+    "CASP3": "Enzyme (Apoptosis)", "H1-Receptor": "Receptor", 
+    "HMG-CoA": "Enzyme", "COX2": "Enzyme", "EGFR": "Receptor", 
 }
-
-all_drugs = [item for sublist in drug_db.values() for item in sublist]
+all_drugs = [d for sub in drug_db.values() for d in sub]
 all_proteins = list(protein_categories.keys())
 
-# --- INITIALIZE SESSION STATE (FIXED FOR VALUEERROR) ---
+# --- INITIALIZE SESSION STATE ---
 if 'selected_energy' not in st.session_state: st.session_state.selected_energy = -7.5
-if 'selected_drug' not in st.session_state or st.session_state.selected_drug not in all_drugs: 
-    st.session_state.selected_drug = all_drugs[0]
-if 'selected_target' not in st.session_state or st.session_state.selected_target not in all_proteins: 
-    st.session_state.selected_target = all_proteins[0]
-if 'selected_tox' not in st.session_state: st.session_state.selected_tox = 15.0
+if 'selected_drug' not in st.session_state: st.session_state.selected_drug = "Atorvastatin"
+if 'selected_target' not in st.session_state: st.session_state.selected_target = "CASP3"
 
-# --- SIDEBAR & MANUAL CONTROL ---
-st.sidebar.header("🕹️ Manual Research Controls")
+# --- SIDEBAR CONTROLS ---
+st.sidebar.header("🔬 Research Parameters")
+st.session_state.selected_drug = st.sidebar.selectbox("Lead Compound:", all_drugs, index=all_drugs.index(st.session_state.selected_drug))
+st.session_state.selected_target = st.sidebar.selectbox("Target Protein:", all_proteins, index=all_proteins.index(st.session_state.selected_target))
+st.session_state.selected_energy = st.sidebar.slider("Binding Affinity (kcal/mol)", -12.0, -4.0, st.session_state.selected_energy)
 
-# Fixed index logic to prevent ValueErrors
-drug_idx = all_drugs.index(st.session_state.selected_drug)
-prot_idx = all_proteins.index(st.session_state.selected_target)
+# DYNAMIC TOXICITY THRESHOLD
+# Stronger binding increases potency but narrows the safety window.
+dynamic_tox = round(abs(st.session_state.selected_energy) * 8.5, 1)
 
-st.session_state.selected_drug = st.sidebar.selectbox("Choose Drug:", all_drugs, index=drug_idx)
-st.session_state.selected_target = st.sidebar.selectbox("Choose Target:", all_proteins, index=prot_idx)
-st.session_state.selected_energy = st.sidebar.slider("Binding Energy (kcal/mol)", -11.5, -4.0, st.session_state.selected_energy)
-st.session_state.selected_tox = st.sidebar.slider("Toxicity Threshold (%)", 5.0, 90.0, st.session_state.selected_tox)
-
-module = st.sidebar.selectbox("Select Simulator Module", 
-    ["Virtual Drug Screening", "Dose Response Simulator", "Protein Pathway Simulator", "Network Pharmacology Explorer", "Molecular Docking Simulator"])
+module = st.sidebar.selectbox("Pipeline Stage:", 
+    ["Virtual Screening", "Dose-Response Analysis", "Pathway & Signal Analysis", "Molecular Docking", "Project Conclusion"])
 
 # -------------------------------------------------
-# 1. VIRTUAL DRUG SCREENING
+# 1. VIRTUAL SCREENING
 # -------------------------------------------------
-if module == "Virtual Drug Screening":
-    st.header("🧪 Step 1: High-Throughput Screening")
-    if st.button("🚀 Run Screen on Global Library"):
-        results = [[d, random.choice(all_proteins), round(random.uniform(-11, -4), 2), round(random.uniform(5, 85), 1)] for d in all_drugs]
-        st.session_state.screening_results = pd.DataFrame(results, columns=["Drug", "Target", "Energy", "Toxicity (%)"])
+if module == "Virtual Screening":
+    st.header("🧪 High-Throughput Screening (HTS)")
+    if st.button("🚀 Execute Library Screen"):
+        results = []
+        for d in all_drugs:
+            energy = round(random.uniform(-11, -4), 2)
+            tox = round(abs(energy) * random.uniform(5, 10), 1)
+            status = "✅ SAFE" if tox < 65 else "⚠️ UNSAFE"
+            results.append([d, st.session_state.selected_target, energy, tox, status])
+        st.session_state.screen_df = pd.DataFrame(results, columns=["Drug", "Target", "Energy", "Toxicity %", "Status"])
     
-    if 'screening_results' in st.session_state:
-        st.dataframe(st.session_state.screening_results.style.background_gradient(subset=['Toxicity (%)'], cmap='RdYlGn_r'), use_container_width=True)
+    if 'screen_df' in st.session_state:
+        st.table(st.session_state.screen_df)
 
 # -------------------------------------------------
-# 2. DOSE RESPONSE SIMULATOR
+# 2. DOSE-RESPONSE SIMULATOR
 # -------------------------------------------------
-elif module == "Dose Response Simulator":
-    st.header(f"📈 Dose-Response: {st.session_state.selected_drug}")
-    ec50 = np.interp(st.session_state.selected_energy, [-12, -4], [0.5, 200])
+elif module == "Dose-Response Analysis":
+    st.header(f"📈 Pharmacodynamic Profile: {st.session_state.selected_drug}")
+    
+    ec50 = np.interp(st.session_state.selected_energy, [-12, -4], [0.5, 150])
+    hill_coeff = 2.4 if protein_categories[st.session_state.selected_target] == "Receptor" else 1.2
+    
     conc = np.logspace(-1, 4, 100)
-    response = (100 * (conc**1.2)) / ( (ec50**1.2) + (conc**1.2) )
+    response = (100 * (conc**hill_coeff)) / ( (ec50**hill_coeff) + (conc**hill_coeff) )
     
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=conc, y=response, line=dict(color='#00CC96', width=4)))
-    fig.add_hline(y=st.session_state.selected_tox, line_dash="dot", line_color="red")
-    fig.update_layout(xaxis_type="log", title="Dose-Response Curve", yaxis_title="Effect %", template="plotly_white")
+    fig.add_trace(go.Scatter(x=conc, y=response, name="Efficacy Curve", line=dict(color='#007bff', width=4)))
+    fig.add_hline(y=dynamic_tox, line_dash="dash", line_color="red", annotation_text="Toxicity Threshold")
+    fig.update_layout(xaxis_type="log", title="Log-Dose Response Graph", xaxis_title="Concentration (nM)", yaxis_title="Biological Response (%)")
     st.plotly_chart(fig, use_container_width=True)
-
-    st.info(f"### 📋 Graph Explanation")
-    st.write(f"This is a **Dose-Response Curve**. It shows how the effectiveness of **{st.session_state.selected_drug}** changes as you increase the concentration. The Red line is your **Toxicity Limit**. If the curve reaches that line, the drug is no longer safe.")
     
 
-# -------------------------------------------------
-# 3. PROTEIN PATHWAY SIMULATOR
-# -------------------------------------------------
-elif module == "Protein Pathway Simulator":
-    st.header(f"⚡ Pathway Analysis: {st.session_state.selected_target}")
-    inhibition = np.interp(st.session_state.selected_energy, [-12, -4], [95, 20])
-    steps = [st.session_state.selected_target, "Signal Relay", "Kinase Activation", "Transcription", "Cell Response"]
-    signal = [inhibition * (0.8**i) for i in range(len(steps))]
-    
-    st.plotly_chart(go.Figure(go.Bar(x=steps, y=signal, marker_color='firebrick', text=[f"{round(s)}%" for s in signal])), use_container_width=True)
-    st.info("### 📉 Bar Chart Explanation")
-    st.write("This measures **Signal Attenuation**. Each bar represents a protein in a chain. The drug hits the first protein, and the 'power' of that message fades as it moves through the cell. A final bar above 30% usually indicates clinical success.")
+    st.markdown(f"""
+    <div class="explanation-box">
+        <h3>📊 Professional Result Interpretation</h3>
+        This graph models the <b>Therapeutic Window</b>. 
+        <ul>
+            <li><b>Hill Coefficient ({hill_coeff}):</b> Quantifies the steepness of the curve. At {hill_coeff}, the drug displays {'cooperative binding' if hill_coeff > 1 else 'Michaelis-Menten kinetics'}.</li>
+            <li><b>EC50 ({round(ec50, 2)} nM):</b> The concentration required to reach half-maximal efficacy. A lower EC50 relative to the Toxicity Threshold is critical for safety.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
+# -------------------------------------------------
+# 3. PATHWAY & BAR CHART
+# -------------------------------------------------
+elif module == "Pathway & Signal Analysis":
+    st.header("⚡ Cellular Signaling & Signal Decay")
+    
+    inhibition = np.interp(st.session_state.selected_energy, [-12, -4], [98, 15])
+    steps = [st.session_state.selected_target, "Relay Protein", "Kinase Cascade", "Transcription", "Cell Fate"]
+    decay = [round(inhibition * (0.8**i), 1) for i in range(len(steps))]
+    
+    st.subheader("Signal Attenuation (Bar Chart)")
+    st.plotly_chart(go.Figure(go.Bar(x=steps, y=decay, marker_color='#6610f2', text=decay, textposition='auto')), use_container_width=True)
+    
+    st.markdown(f"""
+    <div class="explanation-box">
+        <h3>📉 Bar Chart Analysis</h3>
+        <b>Signal Attenuation</b> represents the loss of pharmacological "momentum." As the inhibition of <b>{st.session_state.selected_target}</b> propagates through the cell, internal feedback loops and resistance reduce the net effect. 
+        A final impact of <b>{decay[-1]}%</b> is observed at the 'Cell Fate' stage.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.subheader("Biological Flowchart (Pathway)")
     net = Network(height="400px", width="100%", bgcolor="#ffffff", directed=True)
-    for i in range(len(steps)):
-        net.add_node(steps[i], label=f"{steps[i]}\n{round(signal[i])}%", color="#ff4b4b" if i==0 else "#1c83e1")
+    for i, step in enumerate(steps):
+        net.add_node(step, label=f"{step}\n{decay[i]}%", color="#ff4b4b" if i==0 else "#1c83e1")
         if i > 0: net.add_edge(steps[i-1], steps[i])
-    net.save_graph("pathway.html")
-    with open("pathway.html", 'r') as f: components.html(f.read(), height=450)
-    st.info("### 🕸️ Flowchart Explanation")
-    st.write(f"This maps the **Domino Effect**. By blocking **{st.session_state.selected_target}**, you trigger a chain reaction that stops a disease signal from reaching the nucleus.")
+    net.save_graph("path.html")
+    with open("path.html", 'r') as f: components.html(f.read(), height=450)
     
 
-# -------------------------------------------------
-# 4. NETWORK PHARMACOLOGY
-# -------------------------------------------------
-elif module == "Network Pharmacology Explorer":
-    st.header(f"🕸️ Polypharmacology of {st.session_state.selected_drug}")
-    net = Network(height="500px", width="100%", bgcolor="#ffffff")
-    net.add_node(st.session_state.selected_drug, label=st.session_state.selected_drug, color="#ff4b4b", size=30)
-    for t in random.sample(all_proteins, 4):
-        net.add_node(t, label=t, color="#1c83e1")
-        net.add_edge(st.session_state.selected_drug, t)
-    net.save_graph("network.html")
-    with open("network.html", 'r') as f: components.html(f.read(), height=550)
-    st.info("### 🕸️ Diagram Explanation")
-    st.write("Real drugs are 'dirty'—they hit their main target but also bind to other proteins. This map shows potential side effects or secondary benefits.")
+    st.markdown("""
+    <div class="explanation-box">
+        <h3>🕸️ Flowchart Logic</h3>
+        The flowchart visualizes the <b>Signal Transduction Pathway</b>. In drug discovery, we must ensure the drug doesn't just bind to the surface, but effectively communicates its message to the downstream executors of cellular function.
+    </div>
+    """, unsafe_allow_html=True)
 
 # -------------------------------------------------
-# 5. MOLECULAR DOCKING SIMULATOR
+# 4. MOLECULAR DOCKING
 # -------------------------------------------------
-elif module == "Molecular Docking Simulator":
-    st.header(f"🧩 Molecular Docking: {st.session_state.selected_drug} + {st.session_state.selected_target}")
-    st.write(f"Simulating the physical fit in the active site.")
-    
-    poses = [[i, round(st.session_state.selected_energy + random.uniform(-0.5, 0.5), 2), random.choice(["H-Bond", "Hydrophobic", "Ionic"])] for i in range(1, 6)]
-    df_dock = pd.DataFrame(poses, columns=["Pose ID", "Binding Affinity (kcal/mol)", "Primary Interaction"])
+elif module == "Molecular Docking":
+    st.header("🧩 In-Silico Molecular Docking")
+    poses = [[i, round(st.session_state.selected_energy + random.uniform(-0.3, 0.3), 2), random.choice(["H-Bond", "Van der Waals", "Pi-Stacking"])] for i in range(1, 6)]
+    df_dock = pd.DataFrame(poses, columns=["Pose", "Affinity (kcal/mol)", "Interaction Type"])
     st.table(df_dock)
     
-    st.info(f"### 🧩 Results Explanation")
-    st.write(f"Molecular Docking predicts how well a drug molecule 'fits' into a protein. **Pose 1** has an energy of **{st.session_state.selected_energy} kcal/mol**. A more negative number means the drug is stickier and more likely to work.")
+
+# -------------------------------------------------
+# 5. PROJECT CONCLUSION (NEW SECTION)
+# -------------------------------------------------
+elif module == "Project Conclusion":
+    st.header("🏁 Clinical Trial Readiness Verdict")
+    
+    # Logic for Verdict
+    inhibition = np.interp(st.session_state.selected_energy, [-12, -4], [98, 15])
+    final_signal = inhibition * (0.8**4)
+    potency_score = abs(st.session_state.selected_energy)
+    
+    # Decision Criteria
+    is_potent = potency_score > 7.0
+    is_safe = dynamic_tox < 75.0
+    is_effective = final_signal > 30.0
+    
+    verdict = "GO" if (is_potent and is_safe and is_effective) else "NO-GO"
+    v_class = "go-signal" if verdict == "GO" else "nogo-signal"
+    
+    st.markdown(f"""
+    <div class="conclusion-card {v_class}">
+        <h2 style="text-align: center;">VERDICT: {verdict}</h2>
+        <p style="text-align: center; font-size: 1.2em;">
+            Project Status for <b>{st.session_state.selected_drug}</b> targeting <b>{st.session_state.selected_target}</b>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Potency Level", "HIGH" if is_potent else "LOW", delta=f"{potency_score} kcal/mol")
+    col2.metric("Safety Rating", "PASS" if is_safe else "FAIL", delta=f"{dynamic_tox}% Tox", delta_color="inverse")
+    col3.metric("Pathway Impact", "STRONG" if is_effective else "WEAK", delta=f"{round(final_signal,1)}% Final")
+
+    st.markdown(f"""
+    <div class="explanation-box">
+        <h3>📝 Detailed Clinical Rationale</h3>
+        Based on the integrated data from the <b>Molecular Docking</b> and <b>Signal Decay</b> modules:
+        <ul>
+            <li><b>Binding Profile:</b> A binding energy of {st.session_state.selected_energy} kcal/mol suggests a {'strong' if is_potent else 'weak'} affinity for the active site.</li>
+            <li><b>Therapeutic Index:</b> The dynamic toxicity threshold of {dynamic_tox}% {'is within' if is_safe else 'exceeds'} acceptable clinical safety margins.</li>
+            <li><b>Pathway Conclusion:</b> A final signal strength of {round(final_signal,1)}% indicates that the drug {'will likely' if is_effective else 'will likely NOT'} result in a significant physiological change in a living subject.</li>
+        </ul>
+        <b>Final Recommendation:</b> { 'Proceed to Phase I Clinical Trials.' if verdict == 'GO' else 'Return to Lead Optimization for chemical structure modification.'}
+    </div>
+    """, unsafe_allow_html=True)
