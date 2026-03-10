@@ -201,59 +201,67 @@ elif module == "6. Molecular Docking":
 elif module == "9. ADME Toxicity Radar":
     st.header(f"☢️ Multi-Organ Safety Profile: {selected_drug}")
     
-    # 1. GENERATE DRUG-SPECIFIC SCORES
-    # Using 'rng' ensures the data is locked to the specific drug selection
-    cats = ['Hepatotoxicity', 'Nephrotoxicity', 'Cardiotoxicity', 'Neurotoxicity', 'Respiratory Tox']
-    # Generate 5 unique scores based on the drug's seed
-    scores = [round(rng.uniform(12, 48), 2) for _ in range(5)] 
-    
-    # 2. PLOT RADAR CHART
-    # We add the first element to the end of the lists to 'close' the polygon
-    fig = go.Figure(data=go.Scatterpolar(
-        r=scores + [scores[0]], 
-        theta=cats + [cats[0]], 
-        fill='toself', 
-        line_color='#dc3545',
-        marker=dict(size=9, color='#dc3545')
-    ))
-    
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, 100], ticksuffix="%"),
-            angularaxis=dict(direction="clockwise")
-        ),
-        showlegend=False,
-        margin=dict(l=80, r=80, t=40, b=40)
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    try:
+        # 1. GENERATE DATA (Ensuring rng is available)
+        # If you get an error here, it means 'rng' isn't defined at the top of your script
+        cats = ['Hepatotoxicity', 'Nephrotoxicity', 'Cardiotoxicity', 'Neurotoxicity', 'Respiratory Tox']
+        
+        # We create a local seed based on the drug name to ensure it's unique but stable
+        local_seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % (10**6)
+        local_rng = np.random.default_rng(local_seed)
+        scores = [round(local_rng.uniform(15, 45), 2) for _ in range(5)]
+        
+        # 2. CREATE THE FIGURE
+        # We use a basic dictionary-style initialization which is more stable in Streamlit
+        fig = go.Figure()
 
-    
+        fig.add_trace(go.Scatterpolar(
+            r=scores + [scores[0]],
+            theta=cats + [cats[0]],
+            fill='toself',
+            name=selected_drug,
+            line=dict(color='#dc3545'),
+            marker=dict(color='#dc3545', size=8)
+        ))
 
-    # 3. DYNAMIC VALUE INTERPRETATION (UNIQUE TO DRUG)
-    avg_tox = np.mean(scores)
-    max_val = max(scores)
-    max_organ = cats[scores.index(max_val)]
+        fig.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                    range=[0, 100]
+                )
+            ),
+            showlegend=False,
+            height=500  # Explicit height helps prevent blank renders
+        )
 
-    # Determine verdict based on the drug's specific average
-    verdict = "SAFE" if avg_tox < 50 else "CAUTION"
-    v_color = "#28a745" if verdict == "SAFE" else "#dc3545"
+        # 3. RENDER
+        st.plotly_chart(fig, use_container_width=True, key="radar_chart")
 
-    st.markdown(f"""
-    <div class="explanation-box" style="border-left: 6px solid {v_color}">
-        <h4>📋 Value Interpretation & Verdict for {selected_drug}</h4>
-        <p><b>Mean Toxicity Index:</b> {avg_tox:.2f}%</p>
-        <ul>
-            <li><b>Score 0-30:</b> Low risk; negligible organ stress.</li>
-            <li><b>Score 31-60:</b> Moderate risk; requires dosage monitoring.</li>
-            <li><b>Drug-Specific Observation:</b> The highest predicted sensitivity for <b>{selected_drug}</b> is in <b>{max_organ}</b> ({max_val}%).</li>
-            <li><b>Current Status:</b> The compound exhibits a balanced profile. All parameters remain under the 50% clinical threshold.</li>
-        </ul>
-        <p><b>Final Safety Verdict:</b> <span style="color: {v_color}"><b>{verdict}</b></span></p>
-    </div>
-    """, unsafe_allow_html=True)
+        
 
-    st.info(f"**Researcher Note:** These values are derived from ADME molecular descriptors. A '{verdict}' status for {selected_drug} suggests it is a viable candidate for further in-vivo testing.")
+        # 4. DYNAMIC INTERPRETATION
+        avg_tox = np.mean(scores)
+        max_val = max(scores)
+        max_organ = cats[scores.index(max_val)]
+        verdict = "SAFE" if avg_tox < 50 else "CAUTION"
+        v_color = "#28a745" if verdict == "SAFE" else "#dc3545"
 
+        st.markdown(f"""
+        <div class="explanation-box" style="border-left: 6px solid {v_color}; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);">
+            <h4>📋 Value Interpretation & Verdict for {selected_drug}</h4>
+            <p><b>Mean Toxicity Index:</b> {avg_tox:.2f}%</p>
+            <ul>
+                <li><b>Drug-Specific Observation:</b> The highest predicted sensitivity for <b>{selected_drug}</b> is in <b>{max_organ}</b> ({max_val}%).</li>
+                <li><b>Current Status:</b> {selected_drug} exhibits a balanced profile. All parameters remain under the 50% clinical threshold.</li>
+            </ul>
+            <p><b>Final Safety Verdict:</b> <span style="color: {v_color}"><b>{verdict}</b></span></p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"Chart Rendering Error: {e}")
+        st.write("Check if you have 'plotly' installed: pip install plotly")
 elif module == "8. Project Conclusion":
     st.header("🏁 Research Verdict & Signal Interpretation")
     st.markdown(f'<div class="verdict-go">VERDICT: GO - {selected_drug} is Clinical Trial Ready</div>', unsafe_allow_html=True)
