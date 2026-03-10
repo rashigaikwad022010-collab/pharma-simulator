@@ -51,7 +51,8 @@ herb_db = {
     "Anti-diabetics": ["Berberine", "Coptis chinensis", "C20H18NO4+", "2353", "MOL003"],
     "NSAIDs": ["Curcumin", "Turmeric (Curcuma longa)", "C21H20O6", "969516", "MOL004"],
     "Statins": ["Monacolin K", "Red Yeast Rice", "C24H36O5", "5460719", "MOL005"],
-    "Oncology": ["Epigallocatechin", "Green Tea (Camellia sinensis)", "C15H14O7", "65064", "MOL006"]
+    "Oncology": ["Epigallocatechin", "Green Tea (Camellia sinensis)", "C15H14O7", "65064", "MOL006"],
+    "Alpha-Blockers": ["Silodosin-like", "Uralensis", "C25H32N2O4", "123456", "MOL007"]
 }
 
 # --- SIDEBAR ---
