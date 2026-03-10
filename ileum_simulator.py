@@ -201,67 +201,50 @@ elif module == "6. Molecular Docking":
 elif module == "9. ADME Toxicity Radar":
     st.header(f"☢️ Multi-Organ Safety Profile: {selected_drug}")
     
-    try:
-        # 1. GENERATE DATA (Ensuring rng is available)
-        # If you get an error here, it means 'rng' isn't defined at the top of your script
-        cats = ['Hepatotoxicity', 'Nephrotoxicity', 'Cardiotoxicity', 'Neurotoxicity', 'Respiratory Tox']
-        
-        # We create a local seed based on the drug name to ensure it's unique but stable
-        local_seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % (10**6)
-        local_rng = np.random.default_rng(local_seed)
-        scores = [round(local_rng.uniform(15, 45), 2) for _ in range(5)]
-        
-        # 2. CREATE THE FIGURE
-        # We use a basic dictionary-style initialization which is more stable in Streamlit
-        fig = go.Figure()
+    # These categories match your uploaded screenshot
+    cats = ['Hepatotoxicity', 'Nephrotoxicity', 'Cardiotoxicity', 'Neurotoxicity', 'Respiratory Tox']
+    
+    # Values change dynamically because they use the global 'rng'
+    scores = [round(rng.uniform(15, 45), 2) for _ in range(5)]
+    
+    # Create the Radar
+    fig = go.Figure(data=go.Scatterpolar(
+        r=scores + [scores[0]],
+        theta=cats + [cats[0]],
+        fill='toself',
+        line=dict(color='#dc3545', width=2),
+        marker=dict(size=8, color='#dc3545')
+    ))
 
-        fig.add_trace(go.Scatterpolar(
-            r=scores + [scores[0]],
-            theta=cats + [cats[0]],
-            fill='toself',
-            name=selected_drug,
-            line=dict(color='#dc3545'),
-            marker=dict(color='#dc3545', size=8)
-        ))
+    fig.update_layout(
+        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+        showlegend=False,
+        height=450, # Forces the browser to reserve space so it's not blank
+        margin=dict(l=50, r=50, t=50, b=50)
+    )
 
-        fig.update_layout(
-            polar=dict(
-                radialaxis=dict(
-                    visible=True,
-                    range=[0, 100]
-                )
-            ),
-            showlegend=False,
-            height=500  # Explicit height helps prevent blank renders
-        )
+    # The 'key' ensures Streamlit renders a fresh version for every drug
+    st.plotly_chart(fig, use_container_width=True, key=f"radar_{selected_drug}")
 
-        # 3. RENDER
-        st.plotly_chart(fig, use_container_width=True, key="radar_chart")
+    
 
-        
+    # --- THE INTERPRETATION (Unique to the drug) ---
+    avg_tox = np.mean(scores)
+    max_idx = np.argmax(scores)
+    max_organ = cats[max_idx]
+    max_score = scores[max_idx]
 
-        # 4. DYNAMIC INTERPRETATION
-        avg_tox = np.mean(scores)
-        max_val = max(scores)
-        max_organ = cats[scores.index(max_val)]
-        verdict = "SAFE" if avg_tox < 50 else "CAUTION"
-        v_color = "#28a745" if verdict == "SAFE" else "#dc3545"
-
-        st.markdown(f"""
-        <div class="explanation-box" style="border-left: 6px solid {v_color}; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);">
-            <h4>📋 Value Interpretation & Verdict for {selected_drug}</h4>
-            <p><b>Mean Toxicity Index:</b> {avg_tox:.2f}%</p>
-            <ul>
-                <li><b>Drug-Specific Observation:</b> The highest predicted sensitivity for <b>{selected_drug}</b> is in <b>{max_organ}</b> ({max_val}%).</li>
-                <li><b>Current Status:</b> {selected_drug} exhibits a balanced profile. All parameters remain under the 50% clinical threshold.</li>
-            </ul>
-            <p><b>Final Safety Verdict:</b> <span style="color: {v_color}"><b>{verdict}</b></span></p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    except Exception as e:
-        st.error(f"Chart Rendering Error: {e}")
-        st.write("Check if you have 'plotly' installed: pip install plotly")
+    st.markdown(f"""
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 10px; border-left: 6px solid #dc3545; box-shadow: 2px 2px 8px rgba(0,0,0,0.1);">
+        <h4 style="margin-top:0;">📋 Value Interpretation for {selected_drug}</h4>
+        <p><b>Mean Toxicity Index:</b> {avg_tox:.2f}%</p>
+        <ul>
+            <li><b>Organ Risk:</b> The highest predicted sensitivity is in <b>{max_organ}</b> with a score of {max_score}%.</li>
+            <li><b>Safety Margin:</b> Values are well within the 0-50% safety window.</li>
+            <li><b>Verdict:</b> {selected_drug} is predicted to have a high safety profile for <i>in-vivo</i> studies.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
 elif module == "8. Project Conclusion":
     st.header("🏁 Research Verdict & Signal Interpretation")
     st.markdown(f'<div class="verdict-go">VERDICT: GO - {selected_drug} is Clinical Trial Ready</div>', unsafe_allow_html=True)
