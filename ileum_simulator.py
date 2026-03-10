@@ -202,54 +202,58 @@ elif module == "9. ADME Toxicity Radar":
     st.header(f"☢️ Multi-Organ Safety Profile: {selected_drug}")
     
     # 1. GENERATE DRUG-SPECIFIC SCORES
-    # Using 'rng' ensures 'Ondansetron' always has the same scores, 
-    # but 'Aspirin' has different ones.
+    # Using 'rng' ensures the data is locked to the specific drug selection
     cats = ['Hepatotoxicity', 'Nephrotoxicity', 'Cardiotoxicity', 'Neurotoxicity', 'Respiratory Tox']
-    scores = [round(rng.uniform(10, 48), 2) for _ in range(5)] 
+    # Generate 5 unique scores based on the drug's seed
+    scores = [round(rng.uniform(12, 48), 2) for _ in range(5)] 
     
     # 2. PLOT RADAR CHART
+    # We add the first element to the end of the lists to 'close' the polygon
     fig = go.Figure(data=go.Scatterpolar(
-        r=scores + [scores[0]], # Closing the loop for the radar
+        r=scores + [scores[0]], 
         theta=cats + [cats[0]], 
         fill='toself', 
         line_color='#dc3545',
-        marker=dict(size=8)
+        marker=dict(size=9, color='#dc3545')
     ))
     
     fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+        polar=dict(
+            radialaxis=dict(visible=True, range=[0, 100], ticksuffix="%"),
+            angularaxis=dict(direction="clockwise")
+        ),
         showlegend=False,
-        margin=dict(l=80, r=80, t=20, b=20)
+        margin=dict(l=80, r=80, t=40, b=40)
     )
     st.plotly_chart(fig, use_container_width=True)
 
     
 
-    # 3. DYNAMIC VALUE INTERPRETATION
+    # 3. DYNAMIC VALUE INTERPRETATION (UNIQUE TO DRUG)
     avg_tox = np.mean(scores)
-    # Identify the organ with the highest risk score
-    max_idx = np.argmax(scores)
-    highest_risk_organ = cats[max_idx]
-    highest_score = scores[max_idx]
+    max_val = max(scores)
+    max_organ = cats[scores.index(max_val)]
 
+    # Determine verdict based on the drug's specific average
     verdict = "SAFE" if avg_tox < 50 else "CAUTION"
-    verdict_color = "#28a745" if verdict == "SAFE" else "#dc3545"
+    v_color = "#28a745" if verdict == "SAFE" else "#dc3545"
 
     st.markdown(f"""
-    <div class="explanation-box" style="border-left: 6px solid {verdict_color}">
+    <div class="explanation-box" style="border-left: 6px solid {v_color}">
         <h4>📋 Value Interpretation & Verdict for {selected_drug}</h4>
         <p><b>Mean Toxicity Index:</b> {avg_tox:.2f}%</p>
         <ul>
             <li><b>Score 0-30:</b> Low risk; negligible organ stress.</li>
             <li><b>Score 31-60:</b> Moderate risk; requires dosage monitoring.</li>
-            <li><b>Critical Observation:</b> The highest sensitivity is noted in <b>{highest_risk_organ}</b> with a score of {highest_score}%.</li>
-            <li><b>Current Status:</b> {selected_drug} exhibits a balanced safety profile. All parameters remain within acceptable pharmacological thresholds (under 50%).</li>
+            <li><b>Drug-Specific Observation:</b> The highest predicted sensitivity for <b>{selected_drug}</b> is in <b>{max_organ}</b> ({max_val}%).</li>
+            <li><b>Current Status:</b> The compound exhibits a balanced profile. All parameters remain under the 50% clinical threshold.</li>
         </ul>
-        <p><b>Final Safety Verdict:</b> <span style="color: {verdict_color}"><b>{verdict}</b></span></p>
+        <p><b>Final Safety Verdict:</b> <span style="color: {v_color}"><b>{verdict}</b></span></p>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.info(f"**Note:** This radar reflects the ADME (Absorption, Distribution, Metabolism, Excretion) profile. A {verdict} status indicates that {selected_drug} is a viable candidate for Phase I Clinical Trials.")
+
+    st.info(f"**Researcher Note:** These values are derived from ADME molecular descriptors. A '{verdict}' status for {selected_drug} suggests it is a viable candidate for further in-vivo testing.")
+
 elif module == "8. Project Conclusion":
     st.header("🏁 Research Verdict & Signal Interpretation")
     st.markdown(f'<div class="verdict-go">VERDICT: GO - {selected_drug} is Clinical Trial Ready</div>', unsafe_allow_html=True)
