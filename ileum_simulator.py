@@ -68,7 +68,8 @@ module = st.sidebar.selectbox("Pipeline Stage:", [
     "5. Network Pharmacology (PPI)", 
     "6. Molecular Docking", 
     "8. Project Conclusion",
-    "10. Clinical Success & Druglikeness" # <--- ADD THIS LINE
+    "9. ADME Toxicity Radar", # <--- ADDED THIS BACK
+    "10. Clinical Success & Druglikeness" 
 ])
 
 # --- DYNAMIC CALCULATION ENGINE ---
