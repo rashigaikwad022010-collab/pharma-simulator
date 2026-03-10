@@ -61,9 +61,14 @@ selected_drug = st.sidebar.selectbox("Lead Compound:", drug_class_db[selected_cl
 selected_target = st.sidebar.selectbox("Target Protein:", ["CASP3", "HTR3A", "COX2", "EGFR", "STAT3", "TNF-alpha", "ACE2"])
 
 module = st.sidebar.selectbox("Pipeline Stage:", [
-    "1. Virtual Screening & Herb List", "2. Venn Diagram Analysis", "3. KEGG Enrichment", 
-    "4. Dose-Response & EC50", "5. Network Pharmacology (PPI)", "6. Molecular Docking", 
-    "7. ADME Toxicity Radar", "8. Project Conclusion"
+    "1. Virtual Screening & Herb List", 
+    "2. Venn Diagram Analysis", 
+    "3. KEGG Enrichment", 
+    "4. Dose-Response & EC50", 
+    "5. Network Pharmacology (PPI)", 
+    "6. Molecular Docking", 
+    "8. Project Conclusion",
+    "10. Clinical Success & Druglikeness" # <--- ADD THIS LINE
 ])
 
 # --- DYNAMIC CALCULATION ENGINE ---
