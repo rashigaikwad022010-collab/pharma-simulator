@@ -52,7 +52,8 @@ herb_db = {
     "NSAIDs": ["Curcumin", "Turmeric (Curcuma longa)", "C21H20O6", "969516", "MOL004"],
     "Statins": ["Monacolin K", "Red Yeast Rice", "C24H36O5", "5460719", "MOL005"],
     "Oncology": ["Epigallocatechin", "Green Tea (Camellia sinensis)", "C15H14O7", "65064", "MOL006"],
-    "Alpha-Blockers": ["Silodosin-like", "Uralensis", "C25H32N2O4", "123456", "MOL007"]
+    "Alpha-Blockers": ["Tamsulosin-Analog", "Traditional Herb Source", "C20H28N2O5S", "129211", "MOL007"],
+    "Beta-Blockers": ["Propranolol-like", "Digitalis purpurea", "C16H21NO3", "4946", "MOL008"]
 }
 
 # --- SIDEBAR ---
