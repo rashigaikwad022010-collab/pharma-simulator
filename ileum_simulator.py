@@ -52,8 +52,18 @@ herb_db = {
     "NSAIDs": ["Curcumin", "Turmeric (Curcuma longa)", "C21H20O6", "969516", "MOL004"],
     "Statins": ["Monacolin K", "Red Yeast Rice", "C24H36O5", "5460719", "MOL005"],
     "Oncology": ["Epigallocatechin", "Green Tea (Camellia sinensis)", "C15H14O7", "65064", "MOL006"],
-    "Alpha-Blockers": ["Tamsulosin-Analog", "Traditional Herb Source", "C20H28N2O5S", "129211", "MOL007"],
-    "Beta-Blockers": ["Propranolol-like", "Digitalis purpurea", "C16H21NO3", "4946", "MOL008"]
+    "Anti-convulsants": ["Quercetin", "St. John's Wort", "C15H10O7", "5280343", "MOL007"],
+    "Alpha-Blockers": ["Silodosin-like", "Uralensis", "C25H32N2O4", "123456", "MOL008"],
+    "Beta-Blockers": ["Digitalin", "Foxglove (Digitalis)", "C36H56O14", "441243", "MOL009"],
+    "Calcium Channel Blockers": ["Tetrandrine", "Stephania tetrandra", "C38H42N2O6", "73461", "MOL010"],
+    "PPIs": ["Sulforaphane", "Broccoli (Brassica oleracea)", "C6H11NOS2", "5350", "MOL011"],
+    "Tetracyclines": ["Chlortetracycline", "Natural Streptomyces", "C22H23ClN2O8", "54675779", "MOL012"],
+    "Macrolides": ["Erythromycin-A", "Saccharopolyspora", "C37H67NO13", "12560", "MOL013"],
+    "SGLT2 Inhibitors": ["Phlorizin", "Apple Tree Bark", "C21H24O10", "6072", "MOL014"],
+    "DPP-4 Inhibitors": ["Ananasin", "Pineapple (Ananas comosus)", "C15H20O4", "445580", "MOL015"],
+    "Benzodiazepines": ["Apigenin", "Chamomile (Matricaria)", "C15H10O5", "5280443", "MOL016"],
+    "Fluoroquinolones": ["Quinolone-alkaloid", "Evodia rutaecarpa", "C18H17NO3", "118536", "MOL017"],
+    "Corticosteroids": ["Glycyrrhizin", "Licorice (Glycyrrhiza)", "C42H62O16", "14914", "MOL018"]
 }
 
 # --- SIDEBAR ---
