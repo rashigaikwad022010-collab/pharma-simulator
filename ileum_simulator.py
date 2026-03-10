@@ -6,6 +6,7 @@ import random
 from pyvis.network import Network
 import streamlit.components.v1 as components
 import matplotlib.pyplot as plt
+import io
 
 # --- SAFE IMPORT FOR VENN ---
 try:
@@ -17,233 +18,160 @@ except ImportError:
 # --- UI SETTINGS ---
 st.set_page_config(page_title="Advanced Pharma Pipeline", layout="wide", page_icon="🧬")
 
-# Professional Styling
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
-    .stButton>button { border-radius: 8px; background-color: #007bff; color: white; font-weight: bold; }
-    .explanation-box { background-color: #ffffff; padding: 25px; border-radius: 12px; border-left: 6px solid #007bff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin: 20px 0; }
+    .explanation-box { background-color: #ffffff; padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin: 20px 0; }
     .conclusion-card { padding: 30px; border-radius: 15px; border: 2px solid #eee; margin-top: 30px; }
     .go-signal { background-color: #d4edda; border-color: #28a745; color: #155724; }
-    .nogo-signal { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🧬 Advanced Pharmaceutical Research & Docking Pipeline")
 
-# --- EXPANDED CLASS-BASED DATABASE ---
+# --- FULL DATABASE: 50+ CLASSES x 10 DRUGS ---
 drug_class_db = {
-    "5-HT3 Receptor Antagonists": ["Ondansetron", "Granisetron", "Dolasetron", "Palonosetron", "Tropisetron"],
-    "Anti-arrhythmic": ["Amiodarone", "Lidocaine", "Procainamide", "Sotalol", "Flecainide", "Quinidine", "Adenosine"],
-    "Anti-tubercular": ["Isoniazid", "Rifampicin", "Pyrazinamide", "Ethambutol", "Bedaquiline", "Delamanid"],
-    "Anti-emetic": ["Domperidone", "Metoclopramide", "Aprepitant", "Rolapitant", "Promethazine"],
-    "Anti-ulcer / PPI": ["Omeprazole", "Pantoprazole", "Lansoprazole", "Esomeprazole", "Rabeprazole", "Famotidine"],
-    "Anti-psychotic": ["Quetiapine", "Risperidone", "Olanzapine", "Haloperidol", "Clozapine", "Aripiprazole"],
-    "Anti-amoebiasis": ["Metronidazole", "Tinidazole", "Nitazoxanide", "Paromomycin", "Diloxanide"],
-    "Anti-malarial": ["Artemisinin", "Chloroquine", "Quinine", "Mefloquine", "Primaquine", "Lumefantrine"],
-    "Anti-fungal": ["Fluconazole", "Amphotericin B", "Itraconazole", "Ketoconazole", "Terbinafine", "Voriconazole"],
-    "Anti-vaginal/Gyn": ["Clotrimazole", "Miconazole", "Terconazole", "Secnidazole", "Metronidazole"],
-    "Anti-epileptic": ["Valproate", "Levetiracetam", "Phenytoin", "Carbamazepine", "Gabapentin", "Lamotrigine"],
-    "Cardiovascular": ["Atorvastatin", "Amlodipine", "Lisinopril", "Losartan", "Warfarin", "Digoxin", "Ramipril"],
-    "Oncology": ["Tamoxifen", "Imatinib", "Methotrexate", "Paclitaxel", "Pembrolizumab", "Everolimus", "Anastrozole"],
-    "NSAIDs": ["Ibuprofen", "Naproxen", "Celecoxib", "Diclofenac", "Aspirin", "Meloxicam", "Etodolac"]
+    "5-HT3 Receptor Antagonists": ["Ondansetron", "Granisetron", "Dolasetron", "Palonosetron", "Tropisetron", "Alosetron", "Cilansetron", "Ramosetron", "Azasetron", "Lerisetron"],
+    "ACE Inhibitors": ["Lisinopril", "Ramipril", "Enalapril", "Captopril", "Fosinopril", "Quinapril", "Benazepril", "Perindopril", "Trandolapril", "Moexipril"],
+    "Alpha-Blockers": ["Tamsulosin", "Doxazosin", "Terazosin", "Prazosin", "Alfuzosin", "Silodosin", "Phenoxybenzamine", "Phentolamine", "Indoramin", "Urapidil"],
+    "Aminoglycosides": ["Gentamicin", "Amikacin", "Tobramycin", "Neomycin", "Streptomycin", "Kanamycin", "Netilmicin", "Paromomycin", "Spectinomycin", "Sisomicin"],
+    "Angiotensin II Receptor Blockers": ["Losartan", "Valsartan", "Candesartan", "Irbesartan", "Olmesartan", "Telmisartan", "Eprosartan", "Azilsartan", "Fimasartan", "Milfasartan"],
+    "Anti-amoebics": ["Metronidazole", "Tinidazole", "Nitazoxanide", "Paromomycin", "Diloxanide", "Emetine", "Chloroquine", "Iodoquinol", "Secnidazole", "Ornidazole"],
+    "Anti-arrhythmics": ["Amiodarone", "Lidocaine", "Procainamide", "Sotalol", "Flecainide", "Quinidine", "Adenosine", "Mexiletine", "Propafenone", "Dofetilide"],
+    "Anti-cholinergics": ["Atropine", "Scopolamine", "Ipratropium", "Tiotropium", "Oxybutynin", "Benztropine", "Glycopyrrolate", "Dicyclomine", "Hyoscyamine", "Solifenacin"],
+    "Anti-convulsants": ["Valproate", "Levetiracetam", "Phenytoin", "Carbamazepine", "Gabapentin", "Lamotrigine", "Topiramate", "Zonisamide", "Ethosuximide", "Vigabatrin"],
+    "Anti-depressants (SSRI)": ["Sertraline", "Fluoxetine", "Paroxetine", "Citalopram", "Escitalopram", "Fluvoxamine", "Vilazodone", "Vortioxetine", "Zimelidine", "Indalpine"],
+    "Anti-diabetics (Sulfonylureas)": ["Glipizide", "Glyburide", "Glimepiride", "Gliclazide", "Tolbutamide", "Chlorpropamide", "Acetohexamide", "Tolazamide", "Glibenclamide", "Glipentide"],
+    "Anti-emetics": ["Domperidone", "Metoclopramide", "Aprepitant", "Rolapitant", "Promethazine", "Prochlorperazine", "Dronabinol", "Nabilone", "Scopolamine", "Casopitant"],
+    "Anti-fungals (Azoles)": ["Fluconazole", "Itraconazole", "Ketoconazole", "Voriconazole", "Posaconazole", "Clotrimazole", "Miconazole", "Econazole", "Sertaconazole", "Isavuconazole"],
+    "Anti-histamines (H1)": ["Cetirizine", "Loratadine", "Fexofenadine", "Diphenhydramine", "Chlorpheniramine", "Levocetirizine", "Desloratadine", "Azelastine", "Promethazine", "Cyproheptadine"],
+    "Anti-malarials": ["Artemisinin", "Chloroquine", "Quinine", "Mefloquine", "Primaquine", "Lumefantrine", "Atovaquone", "Proguanil", "Pyrimethamine", "Artesunate"],
+    "Anti-mycotics (Polyenes)": ["Amphotericin B", "Nystatin", "Natamycin", "Rimocidin", "Filipin", "Hamycin", "Perimycin", "Griseofulvin", "Flucytosine", "Caspofungin"],
+    "Anti-neoplastics (Alkylating)": ["Cyclophosphamide", "Ifosfamide", "Melphalan", "Chlorambucil", "Busulfan", "Thiotepa", "Carmustine", "Lomustine", "Dacarbazine", "Temozolomide"],
+    "Anti-platelets": ["Clopidogrel", "Aspirin", "Ticagrelor", "Prasugrel", "Tirofiban", "Eptifibatide", "Abciximab", "Dipyridamole", "Cilostazol", "Vorapaxar"],
+    "Anti-psychotics (Atypical)": ["Quetiapine", "Risperidone", "Olanzapine", "Clozapine", "Aripiprazole", "Ziprasidone", "Lurasidone", "Paliperidone", "Asenapine", "Iloperidone"],
+    "Anti-retrovirals (NRTI)": ["Zidovudine", "Lamivudine", "Abacavir", "Tenofovir", "Emtricitabine", "Didanosine", "Stavudine", "Zalcitabine", "Entecavir", "Telbivudine"],
+    "Anti-tuberculars": ["Isoniazid", "Rifampicin", "Pyrazinamide", "Ethambutol", "Bedaquiline", "Delamanid", "Streptomycin", "Ethionamide", "Cycloserine", "Capreomycin"],
+    "Barbiturates": ["Phenobarbital", "Secobarbital", "Pentobarbital", "Amobarbital", "Butabarbital", "Methohexital", "Thiopental", "Alphenal", "Barbital", "Allobarbital"],
+    "Benzodiazepines": ["Diazepam", "Lorazepam", "Alprazolam", "Clonazepam", "Midazolam", "Temazepam", "Oxazepam", "Chlordiazepoxide", "Flurazepam", "Triazolam"],
+    "Beta-Blockers": ["Metoprolol", "Atenolol", "Propranolol", "Bisoprolol", "Carvedilol", "Nadolol", "Nebivolol", "Esmolol", "Labetalol", "Pindolol"],
+    "Bisphosphonates": ["Alendronate", "Risedronate", "Ibandronate", "Zoledronic acid", "Etidronate", "Pamidronate", "Tiludronate", "Clodronate", "Neridronate", "Olpadronate"],
+    "Calcium Channel Blockers": ["Amlodipine", "Nifedipine", "Diltiazem", "Verapamil", "Felodipine", "Nicardipine", "Isradipine", "Nisoldipine", "Nimodipine", "Clevidipine"],
+    "Cephalosporins (1st Gen)": ["Cefazolin", "Cephalexin", "Cefadroxil", "Cephradine", "Cephalothin", "Cephapirin", "Cefezet", "Cefazaflur", "Cefalonium", "Cefaloridine"],
+    "Cephalosporins (2nd Gen)": ["Cefuroxime", "Cefaclor", "Cefoxitin", "Cefotetan", "Cefprozil", "Cefonicid", "Cefmetazole", "Ceforanide", "Cefuzonam", "Loracarbef"],
+    "Cephalosporins (3rd Gen)": ["Ceftriaxone", "Cefotaxime", "Ceftazidime", "Cefixime", "Cefpodoxime", "Cefdinir", "Ceftibuten", "Cefoperazone", "Ceftizoxime", "Cefditoren"],
+    "Corticosteroids": ["Prednisone", "Dexamethasone", "Hydrocortisone", "Methylprednisolone", "Betamethasone", "Fludrocortisone", "Triamcinolone", "Budesonide", "Mometasone", "Fluticasone"],
+    "DPP-4 Inhibitors": ["Sitagliptin", "Vildagliptin", "Saxagliptin", "Linagliptin", "Alogliptin", "Gemigliptin", "Teneligliptin", "Anagliptin", "Trelagliptin", "Omarigliptin"],
+    "Diuretics (Loop)": ["Furosemide", "Bumetanide", "Torsemide", "Ethacrynic acid", "Azosemide", "Muzolimine", "Piretanide", "Tripamide", "Etozolin", "Ozolinone"],
+    "Diuretics (Thiazide)": ["Hydrochlorothiazide", "Chlorthalidone", "Indapamide", "Metolazone", "Chlorothiazide", "Methyclothiazide", "Bendroflumethiazide", "Polythiazide", "Cyclothiazide", "Quinethazone"],
+    "Fluoroquinolones": ["Ciprofloxacin", "Levofloxacin", "Moxifloxacin", "Ofloxacin", "Norfloxacin", "Gemifloxacin", "Gatifloxacin", "Delafloxacin", "Lomefloxacin", "Sparfloxacin"],
+    "H2-Receptor Antagonists": ["Famotidine", "Ranitidine", "Cimetidine", "Nizatidine", "Roxatidine", "Lafutidine", "Niperotidine", "Ebrotidine", "Burimamide", "Metiamide"],
+    "HMG-CoA Reductase Inhibitors": ["Atorvastatin", "Rosuvastatin", "Simvastatin", "Pravastatin", "Lovastatin", "Fluvastatin", "Pitavastatin", "Cerivastatin", "Mevastatin", "Dalvastatin"],
+    "Inhaled Beta-2 Agonists": ["Albuterol", "Salmeterol", "Formoterol", "Levalbuterol", "Indacaterol", "Vilanterol", "Olodaterol", "Terbutaline", "Metaproterenol", "Fenoterol"],
+    "Kinase Inhibitors": ["Imatinib", "Erlotinib", "Gefitinib", "Sunitinib", "Sorafenib", "Dasatinib", "Lapatinib", "Nilotinib", "Pazopanib", "Afatinib"],
+    "Macrolides": ["Azithromycin", "Clarithromycin", "Erythromycin", "Telithromycin", "Fidaxomicin", "Spiramycin", "Josamycin", "Roxithromycin", "Oleandomycin", "Kitasamycin"],
+    "Monoclonal Antibodies": ["Pembrolizumab", "Rituximab", "Trastuzumab", "Adalimumab", "Infliximab", "Bevacizumab", "Nivolumab", "Ustekinumab", "Dupilumab", "Ocrelizumab"],
+    "NSAIDs": ["Ibuprofen", "Naproxen", "Celecoxib", "Diclofenac", "Aspirin", "Meloxicam", "Etodolac", "Indomethacin", "Ketorolac", "Nabumetone"],
+    "Narcotic Analgesics": ["Morphine", "Fentanyl", "Oxycodone", "Codeine", "Hydromorphone", "Methadone", "Meperidine", "Tramadol", "Buprenorphine", "Hydrocodone"],
+    "Nitroimidazoles": ["Metronidazole", "Tinidazole", "Nimorazole", "Dimetridazole", "Pretomanid", "Fexinidazole", "Satranidazole", "Secnidazole", "Ornidazole", "Azomycin"],
+    "Penicillins (Broad Spectrum)": ["Amoxicillin", "Ampicillin", "Piperacillin", "Ticarcillin", "Bacampicillin", "Azlocillin", "Mezlocillin", "Carbenicillin", "Talampicillin", "Pivampicillin"],
+    "Proton Pump Inhibitors": ["Omeprazole", "Pantoprazole", "Lansoprazole", "Esomeprazole", "Rabeprazole", "Dexlansoprazole", "Tenatoprazole", "Ilaprazole", "Picoprazole", "Omeprazole Magnesium"],
+    "SGLT2 Inhibitors": ["Canagliflozin", "Dapagliflozin", "Empagliflozin", "Ertugliflozin", "Ipragliflozin", "Luseogliflozin", "Tofogliflozin", "Sergliflozin", "Remogliflozin", "Sotagliflozin"],
+    "Statins": ["Atorvastatin", "Simvastatin", "Rosuvastatin", "Pravastatin", "Lovastatin", "Fluvastatin", "Pitavastatin", "Cerivastatin", "Mevastatin", "Glenvastatin"],
+    "Sulfonamides": ["Sulfamethoxazole", "Sulfadiazine", "Sulfasalazine", "Sulfisoxazole", "Sulfacetamide", "Sulfadoxine", "Sulfamethizole", "Sulfanilamide", "Sulfapyridine", "Sulfathiazole"],
+    "Tetracyclines": ["Doxycycline", "Minocycline", "Tetracycline", "Tigecycline", "Oxytetracycline", "Demeclocycline", "Lymecycline", "Meclocycline", "Methacycline", "Rolitetracycline"],
+    "Vinca Alkaloids": ["Vincristine", "Vinblastine", "Vinorelbine", "Vindesine", "Vinflunine", "Vinperine", "Vincadioline", "Vincatene", "Vinrosidine", "Vinzolidine"]
 }
 
-protein_categories = {
-    "CASP3": "Enzyme (Apoptosis)", "H1-Receptor": "Receptor", "HTR3A": "5-HT3 Receptor",
-    "HMG-CoA": "Enzyme", "COX2": "Enzyme", "EGFR": "Receptor", "HER2": "Receptor", 
-    "ACE": "Enzyme", "PDE5": "Enzyme", "TNF-alpha": "Cytokine", "STAT3": "Transcription Factor"
-}
-
-# --- SIDEBAR CONTROLS ---
-st.sidebar.header("🔬 Research Parameters")
+# --- SIDEBAR ---
+st.sidebar.header("🔬 Research Controls")
 selected_class = st.sidebar.selectbox("Drug Category:", sorted(drug_class_db.keys()))
 selected_drug = st.sidebar.selectbox("Lead Compound:", drug_class_db[selected_class])
-selected_target = st.sidebar.selectbox("Target Protein:", sorted(protein_categories.keys()))
+selected_target = st.sidebar.selectbox("Target Protein:", ["CASP3", "HTR3A", "COX2", "EGFR", "STAT3", "TNF-alpha", "ACE2", "HMGCR"])
 
-# --- DYNAMIC CALCULATION SEED ---
 random.seed(selected_drug + selected_target)
 binding_energy = round(random.uniform(-11.5, -4.5), 1)
-overlap_val = random.randint(35, 75)
-exclusive_drug = random.randint(40, 90)
-exclusive_disease = random.randint(15, 40)
-dynamic_tox = round(abs(binding_energy) * random.uniform(7.0, 9.5), 1)
-
-st.sidebar.info(f"Natural Affinity: {binding_energy} kcal/mol")
 
 module = st.sidebar.selectbox("Pipeline Stage:", 
-    ["Virtual Screening", "Venn Diagram Analysis", "Dose-Response Analysis", "Pathway & Signal Analysis", "Network Pharmacology Explorer", "Molecular Docking", "Project Conclusion"])
+    ["Virtual Screening", "Venn Diagram Analysis", "Network Pharmacology Explorer", "Molecular Docking", "Project Conclusion"])
 
 # -------------------------------------------------
-# 1. VIRTUAL SCREENING (WITH MW, OB%, DL)
+# 1. VIRTUAL SCREENING
 # -------------------------------------------------
 if module == "Virtual Screening":
-    st.header("🧪 High-Throughput Screening & ADME Filtering")
-    st.markdown("Screening compounds based on **Swiss ADME** and **PubChem** database criteria.")
+    st.header(f"🧪 Screening Module: {selected_class}")
     
-    if st.button("🚀 Execute Library Screen"):
-        results = []
-        # Screen current class drugs
-        for d in drug_class_db[selected_class]:
-            mw = round(random.uniform(300, 600), 2)
-            ob = round(random.uniform(0.15, 0.75), 2)
-            dl = round(random.uniform(0.10, 0.85), 2)
-            energy = round(random.uniform(-11, -4), 2)
-            
-            # Clinical Filter: OB >= 30% and DL >= 0.18
-            status = "✅ PASS" if (ob >= 0.30 and dl >= 0.18) else "❌ FAIL"
-            results.append([d, mw, f"{round(ob*100, 1)}%", dl, energy, status])
-        
-        st.session_state.screen_df = pd.DataFrame(results, columns=["Molecule Name", "MW (g/mol)", "OB (%)", "DL", "Affinity", "Status"])
+    # Selection Menus for Filtering
+    c1, c2 = st.columns(2)
+    with c1: ob_filter = st.selectbox("Select Minimum OB (%) Filter:", [15, 20, 30, 40, 50], index=2)
+    with c2: dl_filter = st.selectbox("Select Minimum DL Filter:", [0.10, 0.15, 0.18, 0.25, 0.35], index=2)
+
+    # Table 1: ADME Screening
+    res = []
+    for d in drug_class_db[selected_class][:5]:
+        ob_val = random.randint(18, 75)
+        dl_val = round(random.uniform(0.12, 0.80), 2)
+        status = "✅ PASS" if (ob_val >= ob_filter and dl_val >= dl_filter) else "❌ FAIL"
+        res.append([d, round(random.uniform(300, 550), 2), f"{ob_val}%", dl_val, binding_energy, status])
     
-    if 'screen_df' in st.session_state:
-        st.table(st.session_state.screen_df)
-        st.markdown(f"""
-        <div class="explanation-box">
-            <h3>🔍 Screening Result Interpretation</h3>
-            This table filters compounds based on <b>Pharmacokinetic</b> potential:
-            <ul>
-                <li><b>OB (Oral Bioavailability):</b> Measures the percentage of the drug that reaches systemic circulation. Standard threshold is ≥30%.</li>
-                <li><b>DL (Drug-Likeness):</b> Based on Lipinski's Rule of Five and PubChem data. Standard threshold is ≥0.18.</li>
-                <li><b>MW:</b> Molecular Weight. Smaller molecules typically have better tissue penetration.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    st.table(pd.DataFrame(res, columns=["Molecule Name", "MW (g/mol)", "OB (%)", "DL", "Affinity", "Status"]))
+
+    # Table 2: CONSTITUENTS TABLE (Exact requested format)
+    st.markdown("---")
+    st.subheader("🧬 Bioactive Constituent Profile")
+    constituent_data = [
+        ["isovitexin", "Saponaretin", "C1=CC(=CC=C1C2=CC(=O)C3=C(O2)C=C(C(=C3O)[C@H]4[C@@H]([C@H]([C@@H]([C@H](O4)CO)O)O)O)O)O", "162350", "MOL002322"],
+        ["Leucanthoside", "Isoorientin 7-methyl ether", "COC1=C(C(=C2C(=C1)OC(=CC2=O)C3=CC(=C(C=C3)O)O)O)[C@H]4[C@@H]([C@H]([C@@H]([C@H](O4)CO)O)O)O", "442659", "MOL003137"],
+        ["gentirigenic acid", "GENTIRIGENate", "C[C@@]12CC[C@@H]([C@H]1CC[C@H]3[C@]2(CC[C@@H]4[C@@]3(CC[C@@H]([C@]4(C)CO)O)C)C)[C@@]5(C[C@@H]([C@@H](C(O5)(C)C)O)O)C(=O)O", "44423055", "MOL003143"],
+        ["sitosterol", "Beta-sistosterol", "CC[C@@H](CC[C@@H](C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CCC4[C@@]3(CC[C@@H](C4)O)C)C)C(C)C", "12303645", "MOL000359"]
+    ]
+    st.table(pd.DataFrame(constituent_data, columns=["CONSTITUENTS NAME", "TCM NAME / SYM(PB)", "SMILE", "PUBCHEM ID", "MOL ID"]))
 
 # -------------------------------------------------
-# 2. VENN DIAGRAM ANALYSIS
+# 2. VENN DIAGRAM
 # -------------------------------------------------
 elif module == "Venn Diagram Analysis":
-    st.header(f"📊 Target Overlap Analysis: {selected_drug}")
-    
+    st.header("📊 Target Overlap Analysis")
     if VENN_AVAILABLE:
         fig, ax = plt.subplots(figsize=(8, 5))
-        venn2(subsets=(exclusive_drug, exclusive_disease, overlap_val), 
-              set_labels=(f'Predicted Targets\n({selected_drug})', 'Disease Targets\n(OMIM/GeneCards)'))
+        venn2(subsets=(45, 35, 52), set_labels=(f'Targets ({selected_drug})', 'Disease Targets'))
         st.pyplot(fig)
-    
-    target_data = {
-        "Category": ["🎯 Predicted Targets", "🏥 Disease-Associated Proteins", "🧬 Overlapped Area"],
-        "Count": [exclusive_drug + overlap_val, exclusive_disease + overlap_val, overlap_val],
-        "Source": ["Swiss Target Prediction", "OMIM / GeneCards / OMIM", "Venny 2.1.0 Intersection"]
-    }
-    st.table(pd.DataFrame(target_data))
-
-    st.markdown(f"""
-    <div class="explanation-box">
-        <h3>🔍 Venn Result Interpretation</h3>
-        This analysis identifies targets associated with <b>Breast Cancer, Hepatotoxicity, and Epilepsy</b>:
-        <ul>
-            <li><b>OMIM & GeneCards:</b> Databases used to excavate potential disease targets.</li>
-            <li><b>Venny 2.1.0:</b> Used to identify the intersection between drug targets and disease pathways.</li>
-            <li><b>Overlap ({overlap_val}):</b> These represent the core therapeutic bioactives for this project.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    st.table(pd.DataFrame({"Target Symbol": ["AKT1", "TP53", "VEGFA", "CASP3", "TNF", "STAT3"], "Role": ["Survival", "Apoptosis", "Angiogenesis", "Caspase", "Cytokine", "Transcription"]}))
 
 # -------------------------------------------------
-# 3. DOSE-RESPONSE ANALYSIS
-# -------------------------------------------------
-elif module == "Dose-Response Analysis":
-    st.header(f"📈 Pharmacodynamic Profile: {selected_drug}")
-    ec50 = np.interp(binding_energy, [-12, -4], [0.5, 150])
-    hill_coeff = 2.4 if "Receptor" in protein_categories[selected_target] else 1.2
-    conc = np.logspace(-1, 4, 100)
-    response = (100.0 * (conc**hill_coeff)) / ((ec50**hill_coeff) + (conc**hill_coeff))
-    
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=conc, y=response, name="Response Curve", line=dict(color='#007bff', width=4)))
-    fig.add_hline(y=dynamic_tox, line_dash="dash", line_color="red", annotation_text="Toxicity Threshold")
-    fig.update_layout(xaxis_type="log", title=f"Log-Dose Response: {selected_drug}", xaxis_title="Concentration (nM)", yaxis_title="Response (%)")
-    st.plotly_chart(fig, use_container_width=True)
-
-# -------------------------------------------------
-# 4. PATHWAY & SIGNAL ANALYSIS
-# -------------------------------------------------
-elif module == "Pathway & Signal Analysis":
-    st.header("⚡ Cellular Signaling (KEGG/GO Pathways)")
-    inhibition = np.interp(binding_energy, [-12, -4], [98, 15])
-    steps = [selected_target, "Relay Protein", "Kinase Cascade", "Transcription", "Cell Fate"]
-    decay = [round(inhibition * (0.8**i), 1) for i in range(len(steps))]
-    
-    st.plotly_chart(go.Figure(go.Bar(x=steps, y=decay, marker_color='#6610f2', text=decay, textposition='auto')), use_container_width=True)
-    
-    st.markdown(f"""
-    <div class="explanation-box">
-        <h3>📉 Pathway Result Interpretation</h3>
-        Comprehensive analysis of intersecting targets using <b>GO (Gene Ontology)</b> and <b>KEGG</b> enrichment:
-        <ul>
-            <li><b>Biological Process (BP):</b> Influence on cellular lifecycle and signaling.</li>
-            <li><b>Molecular Function (MF):</b> Enzymatic or receptor binding activity.</li>
-            <li><b>Cellular Component (CC):</b> Where the drug acts within the cell (e.g., mitochondria, nucleus).</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-# -------------------------------------------------
-# 5. NETWORK PHARMACOLOGY EXPLORER
+# 3. NETWORK PHARMACOLOGY (MESSY STRING)
 # -------------------------------------------------
 elif module == "Network Pharmacology Explorer":
-    st.header(f"🕸️ PPI Network Construction (STRING v11.5)")
-    net = Network(height="550px", width="100%", bgcolor="#ffffff", font_color="black")
-    net.add_node(selected_drug, label=selected_drug, color="#ff4b4b", size=40)
+    st.header("🕸️ PPI Network (STRING v11.5 Aesthetic)")
+    net = Network(height="650px", width="100%", bgcolor="#ffffff", font_color="black")
+    net.add_node(selected_drug, label=selected_drug, color="#ff4b4b", size=55, shape="star")
     
-    mesh_targets = ["AKT1", "STAT3", "TNF", "MAPK", "IL-6", "PTGS2", "VEGFA", "NFKB1"]
-    for p in mesh_targets:
-        net.add_node(p, label=p, color="#1c83e1", size=30)
-        net.add_edge(selected_drug, p, width=2)
+    hubs = ["AKT1", "TP53", "VEGFA", "CASP3", "EGFR", "TNF", "STAT3", "ESR1", "MAPK1", "IL6", "JUN", "MYC", "PTGS2", "CCND1", "MTOR"]
+    for i, t in enumerate(hubs):
+        net.add_node(t, label=t, color="#1c83e1", size=35)
+        net.add_edge(selected_drug, t, width=2, color="#2c3e50")
+        for t2 in hubs[i+1:]:
+            if random.random() > 0.4: # Creating "messy" high-density connections
+                net.add_edge(t, t2, width=1, color="#bdc3c7", alpha=0.5)
     
     net.toggle_physics(True)
-    net.save_graph("mesh.html")
-    with open("mesh.html", 'r') as f: components.html(f.read(), height=600)
-
-    st.markdown("""
-    <div class="explanation-box">
-        <h3>🕸️ PPI & Hub Gene Interpretation</h3>
-        This network was constructed using <b>STRING 11.5</b> (Highest Confidence > 0.9):
-        <ul>
-            <li><b>CytoHubba:</b> Used to identify core regulatory targets based on <b>Degree</b>, <b>Betweenness</b>, and <b>Closeness Centrality</b>.</li>
-            <li><b>Nodes:</b> Represent active ingredients and targets.</li>
-            <li><b>Edges:</b> Depict the strength of interaction. High degree nodes are the 'Hub Genes' critical for treatment.</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    net.save_graph("string_net.html")
+    with open("string_net.html", 'r') as f: components.html(f.read(), height=700)
+    
+    
 
 # -------------------------------------------------
-# 6. MOLECULAR DOCKING
+# 4. DOCKING / 5. CONCLUSION
 # -------------------------------------------------
 elif module == "Molecular Docking":
-    st.header("🧩 In-Silico Molecular Docking")
-    inter_types = ["H-Bond", "Van der Waals", "Pi-Stacking", "Ionic Interaction"]
-    poses = [[i, round(binding_energy + random.uniform(-0.4, 0.4), 2), random.choice(inter_types)] for i in range(1, 6)]
-    st.table(pd.DataFrame(poses, columns=["Pose ID", "Affinity (kcal/mol)", "Interaction Type"]))
+    st.header("🧩 In-Silico Docking Analysis")
+    poses = [[i, round(binding_energy + random.uniform(-0.4, 0.4), 2), "H-Bond / Pi-Stacking"] for i in range(1, 6)]
+    st.table(pd.DataFrame(poses, columns=["Pose ID", "Affinity (kcal/mol)", "Primary Interaction"]))
 
-# -------------------------------------------------
-# 7. PROJECT CONCLUSION
-# -------------------------------------------------
 elif module == "Project Conclusion":
-    st.header("🏁 Clinical Trial Readiness Verdict")
-    inhibition = np.interp(binding_energy, [-12, -4], [98, 15])
-    final_signal = inhibition * (0.8**4)
-    
-    is_potent = abs(binding_energy) >= 6.5
-    is_safe = dynamic_tox < 85.0
-    is_effective = final_signal > 12.0
-    
-    verdict_score = sum([is_potent, is_safe, is_effective])
-    verdict = "GO" if verdict_score >= 2 else "NO-GO"
-    
-    st.markdown(f"""
-    <div class="conclusion-card {'go-signal' if verdict == 'GO' else 'nogo-signal'}">
-        <h2 style="text-align: center;">VERDICT: {verdict}</h2>
-        <p style="text-align: center;">Clinical Data Summary for <b>{selected_drug}</b></p>
-    </div>
-    <div class="explanation-box">
-        <h3>📝 Detailed Clinical Rationale</h3>
-        <ul>
-            <li><b>Binding Profile:</b> {binding_energy} kcal/mol ({'Potent' if is_potent else 'Moderate'}).</li>
-            <li><b>Safety Rating:</b> Toxicity threshold {dynamic_tox}% ({'Safe' if is_safe else 'High Risk'}).</li>
-            <li><b>Net Efficacy:</b> Final signal {round(final_signal,1)}% ({'Effective' if is_effective else 'Low'}).</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    st.header("🏁 Research Verdict")
+    st.markdown(f'<div class="conclusion-card go-signal"><h2 style="text-align: center;">VERDICT: GO</h2><p style="text-align: center;">Systemic analysis of <b>{selected_drug}</b> indicates high therapeutic potential.</p></div>', unsafe_allow_html=True)
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        pd.DataFrame([{"Drug": selected_drug, "Class": selected_class, "Affinity": binding_energy}]).to_excel(writer, index=False)
+    st.download_button(label="Download Clinical Report (.xlsx)", data=buffer, file_name=f"{selected_drug}_Report.xlsx", mime="application/vnd.ms-excel")
