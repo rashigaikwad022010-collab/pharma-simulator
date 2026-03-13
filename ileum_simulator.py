@@ -290,8 +290,18 @@ elif module == "5. Network Pharmacology (PPI)":
 elif module == "6. Molecular Docking":
     st.header("🧩 Best-Fit Binding Poses")
     
-    poses = [[1, u_aff, "H-Bond (High Spec)"], [2, u_aff+0.4, "Pi-Stacking"], [3, u_aff+1.1, "Van der Waals"]]
-    st.table(pd.DataFrame(poses, columns=["Pose ID", "Affinity (kcal/mol)", "Primary Interaction"]))
+   poses = [
+    [1, u_aff, "Hydrogen Bond", "Tyr355"],
+    [2, u_aff + 0.4, "π–π Stacking", "Phe518"],
+    [3, u_aff + 1.1, "Van der Waals", "Val349"]
+]
+
+df = pd.DataFrame(
+    poses,
+    columns=["Pose ID", "Binding Energy (kcal/mol)", "Interaction Type", "Protein Residue"]
+)
+
+st.table(df)
     st.markdown(f"**Interpretation:** Pose 1 is the dominant conformation for **{selected_drug}** in the {selected_target} active site.")
 
 elif module == "9. ADME Toxicity Radar":
