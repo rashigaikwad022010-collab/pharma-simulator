@@ -146,7 +146,9 @@ def calculate_affinity(drug, drug_class, target):
 
     return round(score + noise,2)
 # --- DYNAMIC CALCULATION ENGINE ---
-seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % (10**6)
+seed_string = selected_drug + selected_target + module
+seed = int(hashlib.md5(seed_string.encode()).hexdigest(), 16) % (10**6)
+
 rng = np.random.default_rng(seed)
 
 u_aff = calculate_affinity(selected_drug, selected_class, selected_target)
