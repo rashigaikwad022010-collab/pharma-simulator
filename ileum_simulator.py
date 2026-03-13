@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import hashlib
+import requests
 from pyvis.network import Network
 import streamlit.components.v1 as components
 
@@ -66,6 +67,8 @@ herb_db = {
     "Corticosteroids": ["Glycyrrhizin", "Licorice (Glycyrrhiza)", "C42H62O16", "14914", "MOL018"]
 }
 
+
+
 # --- SIDEBAR ---
 st.sidebar.header("🔬 Pipeline Configuration")
 selected_class = st.sidebar.selectbox("Drug Category:", sorted(drug_class_db.keys()))
@@ -79,10 +82,46 @@ module = st.sidebar.selectbox("Pipeline Stage:", [
     "4. Dose-Response & EC50", 
     "5. Network Pharmacology (PPI)", 
     "6. Molecular Docking", 
+    "7. Custom Compound Analysis",
     "8. Project Conclusion",
-    "9. ADME Toxicity Radar", # <--- ADDED THIS BACK
+    "9. ADME Toxicity Radar",
     "10. Clinical Success & Druglikeness" 
+   
 ])
+
+def fetch_pubchem_data(compound):
+
+    url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{compound}/property/MolecularWeight,XLogP,HBondDonorCount,HBondAcceptorCount/JSON"
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+
+        data = response.json()
+        props = data["PropertyTable"]["Properties"][0]
+
+        return {
+            "MW": props.get("MolecularWeight"),
+            "LogP": props.get("XLogP"),
+            "HBD": props.get("HBondDonorCount"),
+            "HBA": props.get("HBondAcceptorCount")
+        }
+
+    return None
+
+
+def predict_docking(mw, logp, hbd, hba):
+
+    score = (
+        -0.02 * mw +
+        -0.5 * logp +
+        -0.3 * hbd +
+        -0.25 * hba
+    )
+
+    noise = np.random.normal(0,0.5)
+
+    return round(score + noise,2)
 
 # --- DYNAMIC CALCULATION ENGINE ---
 seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % (10**6)
