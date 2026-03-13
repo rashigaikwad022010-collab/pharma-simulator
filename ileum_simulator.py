@@ -67,6 +67,17 @@ herb_db = {
     "Corticosteroids": ["Glycyrrhizin", "Licorice (Glycyrrhiza)", "C42H62O16", "14914", "MOL018"]
 }
 
+# --- TARGET PREFERENCE RULES (PHARMACOLOGY LOGIC) ---
+target_preference = {
+    "NSAIDs": ["COX2"],
+    "5-HT3 Receptor Antagonists": ["HTR3A"],
+    "ACE Inhibitors": ["ACE2"],
+    "Oncology": ["EGFR", "STAT3"],
+    "Beta-Blockers": ["TNF-alpha"],
+    "Calcium Channel Blockers": ["STAT3"],
+    "Statins": ["TNF-alpha"],
+    "Corticosteroids": ["TNF-alpha"]
+}
 
 
 # --- SIDEBAR ---
@@ -111,7 +122,19 @@ def fetch_pubchem_data(compound):
 
 
 def predict_docking(mw, logp, hbd, hba):
+def calculate_affinity(drug, drug_class, target):
 
+    seed = int(hashlib.md5((drug + target).encode()).hexdigest(), 16) % (10**6)
+    rng = np.random.default_rng(seed)
+
+    affinity = rng.uniform(-9.0, -6.0)
+
+    # Apply pharmacology preference
+    if drug_class in target_preference:
+        if target in target_preference[drug_class]:
+            affinity -= 2
+
+    return round(affinity, 2)
     score = (
         -0.02 * mw +
         -0.5 * logp +
@@ -122,11 +145,12 @@ def predict_docking(mw, logp, hbd, hba):
     noise = np.random.normal(0,0.5)
 
     return round(score + noise,2)
-
 # --- DYNAMIC CALCULATION ENGINE ---
 seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % (10**6)
 rng = np.random.default_rng(seed)
-u_aff = round(rng.uniform(-11.2, -5.2), 1)
+
+u_aff = calculate_affinity(selected_drug, selected_class, selected_target)
+
 u_ec50 = round(10**((abs(u_aff) - 5) / 2.3) * 9.2, 2)
 
 # --- MODULES ---
