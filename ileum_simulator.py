@@ -121,7 +121,6 @@ def fetch_pubchem_data(compound):
     return None
 
 
-def predict_docking(mw, logp, hbd, hba):
 def calculate_affinity(drug, drug_class, target):
 
     seed = int(hashlib.md5((drug + target).encode()).hexdigest(), 16) % (10**6)
