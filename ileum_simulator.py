@@ -145,7 +145,7 @@ def predict_docking(mw, logp, hbd, hba):
         -0.25 * hba
     )
 
-    noise = np.random.normal(0, 0.5)
+    noise = rng.normal(0, 0.5)
 
     return round(score + noise, 2)
     
