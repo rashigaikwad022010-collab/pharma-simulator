@@ -79,6 +79,14 @@ target_preference = {
     "Corticosteroids": ["TNF-alpha"]
 }
 
+target_residues = {
+"COX2": ["Tyr355","Arg120","Ser530","Phe518","Val349"],
+"STAT3": ["Lys591","Arg609","Ser611","Leu706"],
+"CASP3": ["His121","Cys163","Gly122"],
+"TNF-alpha": ["Leu57","Tyr119","Gly121"],
+"HTR3A": ["Trp183","Tyr234","Asp204"]
+}
+
 
 # --- SIDEBAR ---
 st.sidebar.header("🔬 Pipeline Configuration")
@@ -291,11 +299,13 @@ elif module == "6. Molecular Docking":
 
     st.header("🧩 Best-Fit Binding Poses")
 
-    poses = [
-        [1, u_aff, "Hydrogen Bond", "Tyr355"],
-        [2, u_aff + 0.4, "π–π Stacking", "Phe518"],
-        [3, u_aff + 1.1, "Van der Waals", "Val349"]
-    ]
+    res = rng.choice(target_residues[selected_target],3,replace=False)
+
+poses = [
+[1, u_aff, "Hydrogen Bond", res[0]],
+[2, u_aff + 0.4, "π–π Stacking", res[1]],
+[3, u_aff + 1.1, "Van der Waals", res[2]]
+]
 
     df = pd.DataFrame(
         poses,
