@@ -168,7 +168,16 @@ if module == "1. Virtual Screening & Herb List":
     st.table(pd.DataFrame([h], columns=["Constituent", "Source Herb", "SMILES", "PubChem ID", "MOL ID"]))
     
     st.subheader("HTS Results (Filtered by OB & DL)")
-    rows = [[d, f"{rng.integers(25,92)}%", round(rng.uniform(0.12, 0.75), 2), u_aff, "✅ PASS"] for d in drug_class_db[selected_class]]
+    rows = [
+    [
+        d,
+        f"{rng.integers(25,92)}%",
+        round(rng.uniform(0.12, 0.75), 2),
+        calculate_affinity(d, selected_class, selected_target),
+        "✅ PASS"
+    ]
+    for d in drug_class_db[selected_class]
+]
     st.table(pd.DataFrame(rows, columns=["Molecule", "OB (%)", "DL Score", "Affinity (kcal/mol)", "Status"]))
     st.markdown(f"**Interpretation:** **{selected_drug}** was selected for further analysis due to its superior drug-likeness and binding affinity of {u_aff} kcal/mol.")
 
