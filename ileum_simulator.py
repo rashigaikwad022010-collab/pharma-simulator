@@ -134,6 +134,10 @@ def calculate_affinity(drug, drug_class, target):
             affinity -= 2
 
     return round(affinity, 2)
+
+
+def predict_docking(mw, logp, hbd, hba):
+
     score = (
         -0.02 * mw +
         -0.5 * logp +
@@ -141,9 +145,10 @@ def calculate_affinity(drug, drug_class, target):
         -0.25 * hba
     )
 
-    noise = np.random.normal(0,0.5)
+    noise = np.random.normal(0, 0.5)
 
-    return round(score + noise,2)
+    return round(score + noise, 2)
+    
 # --- DYNAMIC CALCULATION ENGINE ---
 seed_string = selected_drug + selected_target + module
 seed = int(hashlib.md5(seed_string.encode()).hexdigest(), 16) % (10**6)
