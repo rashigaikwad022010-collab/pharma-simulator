@@ -288,22 +288,77 @@ elif module == "5. Network Pharmacology (PPI)":
     st.markdown(f"**Interpretation:** The network mesh illustrates functional associations. **{selected_drug}** connects to central biological hubs, disrupting the {selected_target} disease network.")
 
 elif module == "6. Molecular Docking":
+
     st.header("🧩 Best-Fit Binding Poses")
-    
-   poses = [
-    [1, u_aff, "Hydrogen Bond", "Tyr355"],
-    [2, u_aff + 0.4, "π–π Stacking", "Phe518"],
-    [3, u_aff + 1.1, "Van der Waals", "Val349"]
-]
 
-df = pd.DataFrame(
-    poses,
-    columns=["Pose ID", "Binding Energy (kcal/mol)", "Interaction Type", "Protein Residue"]
-)
+    poses = [
+        [1, u_aff, "Hydrogen Bond", "Tyr355"],
+        [2, u_aff + 0.4, "π–π Stacking", "Phe518"],
+        [3, u_aff + 1.1, "Van der Waals", "Val349"]
+    ]
 
-st.table(df)
-    st.markdown(f"**Interpretation:** Pose 1 is the dominant conformation for **{selected_drug}** in the {selected_target} active site.")
+    df = pd.DataFrame(
+        poses,
+        columns=["Pose ID", "Binding Energy (kcal/mol)", "Interaction Type", "Protein Residue"]
+    )
 
+    st.table(df)
+
+    st.markdown(f"""
+    **Interpretation:**  
+    Pose 1 is the dominant binding orientation of **{selected_drug}** with the **{selected_target}** protein.
+    The more negative the binding energy (kcal/mol), the stronger the predicted interaction between ligand and protein.
+    """)
+
+    st.subheader("🔬 Explanation for Students")
+
+    st.markdown(f"""
+### What does Binding Energy mean?
+
+Binding energy shows how strongly a drug molecule binds to a protein.
+
+• More negative value → stronger binding  
+• Less negative value → weaker binding  
+
+Example:  
+Pose 1 = **{u_aff} kcal/mol**, which indicates strong binding.
+
+---
+
+### Pose 1 – Hydrogen Bond (Tyr355)
+
+Hydrogen bonds are strong molecular interactions that stabilize the drug inside the protein binding pocket.
+
+The residue **Tyr355** helps anchor the drug molecule to the active site.
+
+Because this pose has the **lowest binding energy**, it is considered the most stable binding orientation.
+
+---
+
+### Pose 2 – π–π Stacking (Phe518)
+
+π–π stacking interactions occur between aromatic rings of the drug molecule and aromatic amino acids.
+
+The residue **Phe518** forms this interaction.
+
+This pose is slightly weaker than Pose 1 but still contributes to stabilization.
+
+---
+
+### Pose 3 – Van der Waals Interaction (Val349)
+
+Van der Waals interactions are weak forces between atoms.
+
+The residue **Val349** contributes weak stabilization of the drug.
+
+This pose has the highest energy, meaning it is the least stable orientation.
+
+---
+
+### Overall Conclusion
+
+Among all poses, **Pose 1** represents the most stable ligand–protein complex for **{selected_drug}** with the **{selected_target}** target protein.
+""")
 elif module == "9. ADME Toxicity Radar":
     st.header(f"☢️ Multi-Organ Safety Profile: {selected_drug}")
     
