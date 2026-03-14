@@ -300,7 +300,7 @@ elif module == "6. Molecular Docking":
     st.header("🧩 Best-Fit Binding Poses")
 
     # Select residues dynamically for the selected protein
-    res = rng.choice(target_residues[selected_target], 3, replace=False)
+    res = rng.choice(target_residues.get(selected_target, ["Tyr355","Phe518","Val349"]), 3, replace=False)
 
     poses = [
         [1, u_aff, "Hydrogen Bond", res[0]],
