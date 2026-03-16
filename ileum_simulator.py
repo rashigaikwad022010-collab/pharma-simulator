@@ -361,14 +361,15 @@ docking and ADME predictions.
 
         if data:
 
+            # Safe defaults in case PubChem misses values
             mw = data.get("MW") or 300
-logp = data.get("LogP") or 2.5
-hbd = data.get("HBD") or 2
-hba = data.get("HBA") or 5
+            logp = data.get("LogP") or 2.5
+            hbd = data.get("HBD") or 2
+            hba = data.get("HBA") or 5
 
             st.subheader("📊 Molecular Properties (from PubChem)")
 
-            col1,col2,col3,col4 = st.columns(4)
+            col1, col2, col3, col4 = st.columns(4)
 
             col1.metric("Molecular Weight", mw)
             col2.metric("LogP", logp)
@@ -382,25 +383,25 @@ hba = data.get("HBA") or 5
 
             st.subheader("🔗 Docking Prediction")
 
-            poses = [-affinity, -(affinity-0.4), -(affinity-1)]
+            poses = [affinity, affinity + 0.4, affinity + 1]
 
             pose_df = pd.DataFrame({
-                "Pose":["Pose 1","Pose 2","Pose 3"],
-                "Binding Energy":[poses[0],poses[1],poses[2]]
+                "Pose": ["Pose 1", "Pose 2", "Pose 3"],
+                "Binding Energy (kcal/mol)": poses
             })
 
             fig = px.bar(
                 pose_df,
                 x="Pose",
-                y="Binding Energy",
+                y="Binding Energy (kcal/mol)",
                 title="Predicted Docking Affinity"
             )
 
-            st.plotly_chart(fig,use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
             st.divider()
 
-            # ADME radar
+            # ADME Radar
             st.subheader("☢️ ADME Toxicity Radar")
 
             cats = [
@@ -411,24 +412,24 @@ hba = data.get("HBA") or 5
                 "Respiratory Toxicity"
             ]
 
-            scores = [round(rng.uniform(20,60),2) for _ in range(5)]
+            scores = [round(rng.uniform(20, 60), 2) for _ in range(5)]
 
             radar = go.Figure(data=go.Scatterpolar(
-                r=scores+[scores[0]],
-                theta=cats+[cats[0]],
+                r=scores + [scores[0]],
+                theta=cats + [cats[0]],
                 fill='toself'
             ))
 
             radar.update_layout(
-                polar=dict(radialaxis=dict(visible=True,range=[0,100])),
+                polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
                 showlegend=False
             )
 
-            st.plotly_chart(radar,use_container_width=True)
+            st.plotly_chart(radar, use_container_width=True)
 
             st.divider()
 
-            # Druglikeness score
+            # Druglikeness evaluation
             st.subheader("💊 Druglikeness Evaluation")
 
             lipinski_pass = (
@@ -439,17 +440,12 @@ hba = data.get("HBA") or 5
             )
 
             score = 0
+            if mw < 500: score += 1
+            if logp < 5: score += 1
+            if hbd <= 5: score += 1
+            if hba <= 10: score += 1
 
-            if mw < 500:
-                score += 1
-            if logp < 5:
-                score += 1
-            if hbd <= 5:
-                score += 1
-            if hba <= 10:
-                score += 1
-
-            st.metric("Druglikeness Score",f"{score}/4")
+            st.metric("Druglikeness Score", f"{score}/4")
 
             if lipinski_pass:
                 st.success("Passes Lipinski Rule of Five")
@@ -458,7 +454,7 @@ hba = data.get("HBA") or 5
 
             st.divider()
 
-            # Final verdict
+            # Lead candidate verdict
             st.subheader("🧬 Lead Candidate Verdict")
 
             if affinity < -7 and lipinski_pass:
@@ -470,7 +466,6 @@ hba = data.get("HBA") or 5
 
         else:
             st.error("Compound not found in PubChem database.")
-    
 elif module == "9. ADME Toxicity Radar":
     st.header(f"☢️ Multi-Organ Safety Profile: {selected_drug}")
     
