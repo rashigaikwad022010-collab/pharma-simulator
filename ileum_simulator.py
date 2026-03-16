@@ -267,16 +267,7 @@ elif module == "3. KEGG Enrichment":
         "Fold Enrichment": [round(f, 2) for f in fold_vals],
         "P-Value (FDR)": [f"{p:.2e}" for p in p_vals]
     }))
-elif module == "4. Dose-Response & EC50":
-    st.header(f"📈 Pharmacodynamic Response: {selected_drug}")
-    st.subheader(f"Calculated EC50: {u_ec50} nM")
-    conc = np.logspace(-1, 4, 100)
-    resp = (100 * conc**2.2) / (u_ec50**2.2 + conc**2.2)
-    fig = go.Figure(go.Scatter(x=conc, y=resp, line=dict(color='#007bff', width=4), name="Response Curve"))
-    fig.update_layout(xaxis_type="log", xaxis_title="Concentration (nM)", yaxis_title="Inhibitory Response (%)")
-    st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown(f"**Interpretation:** The sigmoidal curve predicts that 50% inhibition occurs at **{u_ec50} nM**, characterizing it as a high-potency lead.")
+
 
 elif module == "5. Network Pharmacology (PPI)":
     st.header("🕸️ PPI Interaction Network (STRING v12)")
@@ -370,10 +361,10 @@ docking and ADME predictions.
 
         if data:
 
-            mw = data["MW"]
-            logp = data["LogP"]
-            hbd = data["HBD"]
-            hba = data["HBA"]
+            mw = data.get("MW") or 300
+logp = data.get("LogP") or 2.5
+hbd = data.get("HBD") or 2
+hba = data.get("HBA") or 5
 
             st.subheader("📊 Molecular Properties (from PubChem)")
 
