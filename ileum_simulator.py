@@ -361,11 +361,10 @@ docking and ADME predictions.
 
         if data:
 
-            # Safe defaults in case PubChem misses values
-            mw = data.get("MW") or 300
-            logp = data.get("LogP") or 2.5
-            hbd = data.get("HBD") or 2
-            hba = data.get("HBA") or 5
+           mw = float(data.get("MW") or 300)
+logp = float(data.get("LogP") or 2.5)
+hbd = float(data.get("HBD") or 2)
+hba = float(data.get("HBA") or 5)
 
             st.subheader("📊 Molecular Properties (from PubChem)")
 
