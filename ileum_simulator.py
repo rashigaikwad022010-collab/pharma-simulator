@@ -361,10 +361,11 @@ docking and ADME predictions.
 
         if data:
 
-           mw = float(data.get("MW") or 300)
-logp = float(data.get("LogP") or 2.5)
-hbd = float(data.get("HBD") or 2)
-hba = float(data.get("HBA") or 5)
+            # Convert to numbers to avoid TypeError
+            mw = float(data.get("MW") or 300)
+            logp = float(data.get("LogP") or 2.5)
+            hbd = float(data.get("HBD") or 2)
+            hba = float(data.get("HBA") or 5)
 
             st.subheader("📊 Molecular Properties (from PubChem)")
 
@@ -439,10 +440,14 @@ hba = float(data.get("HBA") or 5)
             )
 
             score = 0
-            if mw < 500: score += 1
-            if logp < 5: score += 1
-            if hbd <= 5: score += 1
-            if hba <= 10: score += 1
+            if mw < 500:
+                score += 1
+            if logp < 5:
+                score += 1
+            if hbd <= 5:
+                score += 1
+            if hba <= 10:
+                score += 1
 
             st.metric("Druglikeness Score", f"{score}/4")
 
