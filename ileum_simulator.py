@@ -351,6 +351,134 @@ Each pose represents a different orientation of the drug molecule inside the pro
 
 The residue represents the amino acid in the protein that interacts with the ligand at the binding site.
 """)
+
+elif module == "7. Custom Compound Analysis":
+
+    st.title("🧪 Custom Compound Analysis")
+
+    st.markdown("""
+Enter a compound name to analyze its potential as a drug candidate.
+The system retrieves molecular descriptors from PubChem and simulates
+docking and ADME predictions.
+""")
+
+    compound = st.text_input("Enter Compound Name")
+
+    if compound:
+
+        data = fetch_pubchem_data(compound)
+
+        if data:
+
+            mw = data["MW"]
+            logp = data["LogP"]
+            hbd = data["HBD"]
+            hba = data["HBA"]
+
+            st.subheader("📊 Molecular Properties (from PubChem)")
+
+            col1,col2,col3,col4 = st.columns(4)
+
+            col1.metric("Molecular Weight", mw)
+            col2.metric("LogP", logp)
+            col3.metric("H-Bond Donors", hbd)
+            col4.metric("H-Bond Acceptors", hba)
+
+            st.divider()
+
+            # Docking prediction
+            affinity = predict_docking(mw, logp, hbd, hba)
+
+            st.subheader("🔗 Docking Prediction")
+
+            poses = [-affinity, -(affinity-0.4), -(affinity-1)]
+
+            pose_df = pd.DataFrame({
+                "Pose":["Pose 1","Pose 2","Pose 3"],
+                "Binding Energy":[poses[0],poses[1],poses[2]]
+            })
+
+            fig = px.bar(
+                pose_df,
+                x="Pose",
+                y="Binding Energy",
+                title="Predicted Docking Affinity"
+            )
+
+            st.plotly_chart(fig,use_container_width=True)
+
+            st.divider()
+
+            # ADME radar
+            st.subheader("☢️ ADME Toxicity Radar")
+
+            cats = [
+                "Hepatotoxicity",
+                "Nephrotoxicity",
+                "Cardiotoxicity",
+                "Neurotoxicity",
+                "Respiratory Toxicity"
+            ]
+
+            scores = [round(rng.uniform(20,60),2) for _ in range(5)]
+
+            radar = go.Figure(data=go.Scatterpolar(
+                r=scores+[scores[0]],
+                theta=cats+[cats[0]],
+                fill='toself'
+            ))
+
+            radar.update_layout(
+                polar=dict(radialaxis=dict(visible=True,range=[0,100])),
+                showlegend=False
+            )
+
+            st.plotly_chart(radar,use_container_width=True)
+
+            st.divider()
+
+            # Druglikeness score
+            st.subheader("💊 Druglikeness Evaluation")
+
+            lipinski_pass = (
+                mw < 500 and
+                logp < 5 and
+                hbd <= 5 and
+                hba <= 10
+            )
+
+            score = 0
+
+            if mw < 500:
+                score += 1
+            if logp < 5:
+                score += 1
+            if hbd <= 5:
+                score += 1
+            if hba <= 10:
+                score += 1
+
+            st.metric("Druglikeness Score",f"{score}/4")
+
+            if lipinski_pass:
+                st.success("Passes Lipinski Rule of Five")
+            else:
+                st.warning("Possible Lipinski Rule violation")
+
+            st.divider()
+
+            # Final verdict
+            st.subheader("🧬 Lead Candidate Verdict")
+
+            if affinity < -7 and lipinski_pass:
+                st.success("Potential Lead Candidate for Drug Development")
+            elif affinity < -6:
+                st.info("Moderate Binding — Further Optimization Needed")
+            else:
+                st.warning("Weak Binding — Low Drug Potential")
+
+        else:
+            st.error("Compound not found in PubChem database.")
     
 elif module == "9. ADME Toxicity Radar":
     st.header(f"☢️ Multi-Organ Safety Profile: {selected_drug}")
