@@ -286,7 +286,72 @@ if module == "1. Virtual Screening & Herb List":
     st.table(pd.DataFrame(rows, columns=["Molecule", "OB (%)", "DL Score", "Affinity (kcal/mol)", "Status"]))
     st.markdown(f"**Interpretation:** **{selected_drug}** was selected for further analysis due to its superior drug-likeness and binding affinity of {u_aff} kcal/mol.")
 
-elif module == "2. Venn Diagram Analysis": st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_target}") # --- DYNAMIC DATA GENERATOR --- # We use the drug and target names to create unique 'random' counts drug_seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % 150 target_seed = int(hashlib.md5(selected_target.encode()).hexdigest(), 16) % 20 # Calculate Dynamic Counts total_drug_targets = 1100 + drug_seed # e.g., 1100-1250 total_disease_targets = 80 + target_seed # e.g., 80-100 overlap_count = 30 + (drug_seed % 25) # e.g., 30-55 # Calculate Percentages p1 = round((total_drug_targets / (total_drug_targets + total_disease_targets)) * 100, 1) p2 = round((total_disease_targets / (total_drug_targets + total_disease_targets)) * 100, 1) p_overlap = round((overlap_count / (total_drug_targets + total_disease_targets)) * 100, 1) # --- VENN DIAGRAM VISUAL --- fig = go.Figure() fig.add_shape(type="circle", x0=0, y0=0, x1=2, y1=2, line_color="black", opacity=0.7) fig.add_shape(type="circle", x0=1.1, y0=0, x1=3.1, y1=2, line_color="black", opacity=0.7) fig.add_annotation(x=0.5, y=1, text=f"{total_drug_targets}<br>({p1}%)", showarrow=False) fig.add_annotation(x=1.55, y=1, text=f"<b>{overlap_count}</b><br>({p_overlap}%)", showarrow=False) fig.add_annotation(x=2.6, y=1, text=f"{total_disease_targets}<br>({p2}%)", showarrow=False) fig.update_xaxes(visible=False, range=[-0.5, 3.5]) fig.update_yaxes(visible=False, range=[-0.5, 2.5]) fig.update_layout(width=600, height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)') st.plotly_chart(fig) # --- DYNAMIC TARGET TABLE --- st.subheader("🧬 Dataset Intersection Details") target_details = { "Dataset Category": [ f"💊 Drug Targets ({selected_drug})", f"🎯 Disease Targets ({selected_target})", "🤝 Intersection (Bioactive Hits)" ], "Total Count": [total_drug_targets, total_disease_targets, overlap_count], "Representative Identifiers": [ f"MMP{drug_seed}, CASP{drug_seed+2}, MAPK{drug_seed-5}, PTGS2, NOS3, PPARG", f"ACE{target_seed+80}, TMPRSS{target_seed+81}, AGTR1, ADAM17, SLC6A19", "AKT1, TP53, TNF, IL6, VEGFA, STAT3, CASP3" ] } st.table(pd.DataFrame(target_details)) st.info(f"**Research Summary:** For the lead compound **{selected_drug}**, we identified **{overlap_count}** core targets that directly intersect with the **{selected_target}** disease network.")
+elif module == "2. Venn Diagram Analysis":
+    st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_target}")
+
+    # --- DYNAMIC DATA GENERATOR ---
+    # We use the drug and target names to create unique 'random' counts
+    drug_seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % 150
+    target_seed = int(hashlib.md5(selected_target.encode()).hexdigest(), 16) % 20
+
+    # Calculate Dynamic Counts
+    total_drug_targets = 1100 + drug_seed      # e.g., 1100-1250
+    total_disease_targets = 80 + target_seed   # e.g., 80-100
+    overlap_count = 30 + (drug_seed % 25)      # e.g., 30-55
+
+    # Calculate Percentages
+    p1 = round((total_drug_targets / (total_drug_targets + total_disease_targets)) * 100, 1)
+    p2 = round((total_disease_targets / (total_drug_targets + total_disease_targets)) * 100, 1)
+    p_overlap = round((overlap_count / (total_drug_targets + total_disease_targets)) * 100, 1)
+
+    # --- VENN DIAGRAM VISUAL ---
+    fig = go.Figure()
+    fig.add_shape(type="circle", x0=0, y0=0, x1=2, y1=2, line_color="black", opacity=0.7)
+    fig.add_shape(type="circle", x0=1.1, y0=0, x1=3.1, y1=2, line_color="black", opacity=0.7)
+
+    fig.add_annotation(x=0.5, y=1, text=f"{total_drug_targets}<br>({p1}%)", showarrow=False)
+    fig.add_annotation(x=1.55, y=1, text=f"<b>{overlap_count}</b><br>({p_overlap}%)", showarrow=False)
+    fig.add_annotation(x=2.6, y=1, text=f"{total_disease_targets}<br>({p2}%)", showarrow=False)
+
+    fig.update_xaxes(visible=False, range=[-0.5, 3.5])
+    fig.update_yaxes(visible=False, range=[-0.5, 2.5])
+    fig.update_layout(
+        width=600,
+        height=400,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+
+    st.plotly_chart(fig)
+
+    # --- DYNAMIC TARGET TABLE ---
+    st.subheader("🧬 Dataset Intersection Details")
+
+    target_details = {
+        "Dataset Category": [
+            f"💊 Drug Targets ({selected_drug})",
+            f"🎯 Disease Targets ({selected_target})",
+            "🤝 Intersection (Bioactive Hits)"
+        ],
+        "Total Count": [
+            total_drug_targets,
+            total_disease_targets,
+            overlap_count
+        ],
+        "Representative Identifiers": [
+            f"MMP{drug_seed}, CASP{drug_seed+2}, MAPK{drug_seed-5}, PTGS2, NOS3, PPARG",
+            f"ACE{target_seed+80}, TMPRSS{target_seed+81}, AGTR1, ADAM17, SLC6A19",
+            "AKT1, TP53, TNF, IL6, VEGFA, STAT3, CASP3"
+        ]
+    }
+
+    st.table(pd.DataFrame(target_details))
+
+    st.info(
+        f"**Research Summary:** For the lead compound **{selected_drug}**, "
+        f"we identified **{overlap_count}** core targets that directly intersect "
+        f"with the **{selected_target}** disease network."
+    )
 elif module == "3. KEGG Enrichment":
     st.header(f"📈 KEGG Fold Enrichment: {selected_drug}")
     
