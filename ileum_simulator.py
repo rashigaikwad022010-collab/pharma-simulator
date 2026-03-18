@@ -161,10 +161,14 @@ def omim_score(genes):
 # --- SIDEBAR ---
 st.sidebar.header(" Pipeline Configuration")
 selected_class = st.sidebar.selectbox("Drug Category:", sorted(drug_class_db.keys()))
-# Auto disease selection based on drug class
+# --- AUTO-FETCH DISEASE NAME BASED ON DRUG CLASS ---
 selected_disease = disease_map.get(selected_class, "General Disease")
-st.sidebar.markdown("###  Selected Disease")
-st.sidebar.success(selected_disease)
+
+st.sidebar.markdown("### 🏥 Selected Disease")
+if selected_disease == "General Disease":
+    st.sidebar.warning("No disease mapped to this drug class yet.")
+else:
+    st.sidebar.success(selected_disease)
 selected_drug = st.sidebar.selectbox("Lead Compound:", drug_class_db[selected_class])
 selected_target = st.sidebar.selectbox("Target Protein:", ["CASP3", "HTR3A", "COX2", "EGFR", "STAT3", "TNF-alpha", "ACE2"])
 
@@ -172,7 +176,7 @@ module = st.sidebar.selectbox("Pipeline Stage:", [
     "1. Virtual Screening & Herb List", 
     "2. Venn Diagram Analysis", 
     "3. KEGG Enrichment", 
-    "4. Dose-Response & EC50", 
+    "4. GO Enrichment & STRING Network", 
     "5. Network Pharmacology (PPI)", 
     "6. Molecular Docking", 
     "7. Custom Compound Analysis",
@@ -264,21 +268,19 @@ if module == "1. Virtual Screening & Herb List":
     st.markdown(f"**Interpretation:** **{selected_drug}** was selected for further analysis due to its superior drug-likeness and binding affinity of {u_aff} kcal/mol.")
 
 elif module == "2. Venn Diagram Analysis":
-     elif module == "2. Venn Diagram Analysis":
+     st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
 
-    st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
+   # --- FETCH DISEASE GENES FROM DisGeNET ---
+disease_genes = fetch_disgenet_genes(selected_disease)
+if not disease_genes:
+    st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
+    disease_genes = ["ACE", "TNF", "IL6", "VEGFA", "MAPK1"]  # fallback
 
-    # --- FETCH DISEASE GENES FROM DisGeNET ---
-    disease_genes = fetch_disgenet_genes(selected_disease)
-    if not disease_genes:
-        st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
-        disease_genes = ["ACE", "TNF", "IL6", "VEGFA", "MAPK1"]  # fallback
+# --- DRUG TARGETS (using selected_drug itself for demo) ---
+drug_targets = [selected_drug]  # simple: lead compound as target
 
-    # --- DRUG TARGETS (same as before) ---
-    drug_targets = drug_class_db.get(selected_class, [])[:5]  # first 5 drugs as targets
-
-    # --- CALCULATE OVERLAP ---
-    overlap_genes = list(set(drug_targets) & set(disease_genes))
+# --- CALCULATE OVERLAP ---
+overlap_genes = list(set(drug_targets) & set(disease_genes))
 
     # --- OMIM SCORING ---
     gene_scores = omim_score(overlap_genes)
@@ -348,6 +350,58 @@ elif module == "3. KEGG Enrichment":
         "Fold Enrichment": [round(f, 2) for f in fold_vals],
         "P-Value (FDR)": [f"{p:.2e}" for p in p_vals]
     }))
+
+elif module == "4. GO Enrichment & STRING Network":
+    st.header(f"🧬 GO Enrichment & STRING Network: {selected_drug} / {selected_target}")
+
+    # --- Simulate GO enrichment based on selected target & disease ---
+    go_terms = [
+        "Apoptotic Process", "Cell Proliferation", "Inflammatory Response",
+        "Signal Transduction", "Angiogenesis", "Immune Response", "Metabolic Process"
+    ]
+
+    # Random fold enrichment values (dynamic per drug + target)
+    go_fold = sorted([round(rng.uniform(1.5, 6.5), 2) for _ in go_terms], reverse=True)
+
+    # Display GO enrichment bar chart
+    fig_go = px.bar(
+        x=go_fold, y=go_terms, orientation='h', 
+        color=go_fold, color_continuous_scale='Plasma',
+        labels={'x': 'Fold Enrichment', 'y': 'GO Term'},
+        title=f"GO Biological Process Enrichment for {selected_target}"
+    )
+    st.plotly_chart(fig_go, use_container_width=True)
+
+    # --- Simulate messy STRING network ---
+    st.subheader("🔀 STRING-like Protein Interaction Network")
+
+    net_string = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
+    net_string.add_node(selected_drug, label=selected_drug, color="red", size=40, shape="star")
+    
+    # Randomly generate proteins including selected target and disease hits
+    string_proteins = [selected_target] + rng.choice(
+        ["AKT1", "TP53", "VEGFA", "TNF", "STAT3", "IL6", "MAPK1", "MTOR", "CASP3", "EGFR"], 
+        6, replace=False
+    ).tolist()
+    
+    for p in string_proteins:
+        net_string.add_node(p, label=p, color="#1c83e1", size=rng.integers(20,35))
+    
+    # Random edges for messy look
+    for i, t1 in enumerate(string_proteins):
+        for t2 in string_proteins[i+1:]:
+            if rng.random() > 0.5:  # random connection
+                net_string.add_edge(t1, t2, width=rng.uniform(1,3), color="#bdc3c7")
+    
+    # Connect drug to some random proteins
+    for t in rng.choice(string_proteins, 3, replace=False):
+        net_string.add_edge(selected_drug, t, width=2.5, color="red")
+
+    net_string.save_graph("string_network.html")
+    with open("string_network.html", 'r') as f: 
+        components.html(f.read(), height=550)
+    
+    st.info(f"Network shows potential protein interactions influenced by **{selected_drug}** and related to **{selected_target}**.")
 
 
 elif module == "5. Network Pharmacology (PPI)":
