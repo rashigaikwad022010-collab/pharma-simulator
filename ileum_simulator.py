@@ -353,7 +353,7 @@ elif module == "3. KEGG Enrichment":
 elif module == "4. GO Enrichment & STRING Network":
     st.header(f"🧬 GO Enrichment & STRING Network: {selected_drug} / {selected_target}")
 
-    # --- Simulate GO enrichment based on selected target & disease ---
+    # --- Simulate GO enrichment based on selected target & drug ---
     go_terms = [
         "Apoptotic Process", "Cell Proliferation", "Inflammatory Response",
         "Signal Transduction", "Angiogenesis", "Immune Response", "Metabolic Process"
@@ -364,44 +364,61 @@ elif module == "4. GO Enrichment & STRING Network":
 
     # Display GO enrichment bar chart
     fig_go = px.bar(
-        x=go_fold, y=go_terms, orientation='h', 
+        x=go_fold, y=go_terms, orientation='h',
         color=go_fold, color_continuous_scale='Plasma',
         labels={'x': 'Fold Enrichment', 'y': 'GO Term'},
         title=f"GO Biological Process Enrichment for {selected_target}"
     )
     st.plotly_chart(fig_go, use_container_width=True)
 
-    # --- Simulate messy STRING network ---
+    # --- STRING-like Protein Interaction Network ---
     st.subheader("🔀 STRING-like Protein Interaction Network")
 
+    # Initialize PyVis network
     net_string = Network(height="500px", width="100%", bgcolor="#ffffff", font_color="black")
     net_string.add_node(selected_drug, label=selected_drug, color="red", size=40, shape="star")
-    
-    # Randomly generate proteins including selected target and disease hits
+
+    # Randomly generate proteins including selected target
     string_proteins = [selected_target] + rng.choice(
-        ["AKT1", "TP53", "VEGFA", "TNF", "STAT3", "IL6", "MAPK1", "MTOR", "CASP3", "EGFR"], 
+        ["AKT1", "TP53", "VEGFA", "TNF", "STAT3", "IL6", "MAPK1", "MTOR", "CASP3", "EGFR"],
         6, replace=False
     ).tolist()
-    
+
+    # Add protein nodes
     for p in string_proteins:
-        net_string.add_node(p, label=p, color="#1c83e1", size=rng.integers(20,35))
-    
-    # Random edges for messy look
+        net_string.add_node(p, label=p, color="#1c83e1", size=int(rng.integers(20, 35)))
+
+    # Add random edges between proteins
     for i, t1 in enumerate(string_proteins):
-        for t2 in string_proteins[i+1:]:
-            if rng.random() > 0.5:  # random connection
-                net_string.add_edge(t1, t2, width=rng.uniform(1,3), color="#bdc3c7")
-    
-    # Connect drug to some random proteins
-    for t in rng.choice(string_proteins, 3, replace=False):
+        for t2 in string_proteins[i + 1:]:
+            if rng.random() > 0.5:
+                net_string.add_edge(t1, t2, width=float(rng.uniform(1, 3)), color="#bdc3c7")
+
+    # Connect drug to a few proteins
+    connected_proteins = rng.choice(string_proteins, 3, replace=False)
+    for t in connected_proteins:
         net_string.add_edge(selected_drug, t, width=2.5, color="red")
 
+    # Save & display network
     net_string.save_graph("string_network.html")
-    with open("string_network.html", 'r') as f: 
+    with open("string_network.html", 'r') as f:
         components.html(f.read(), height=550)
-    
-    st.info(f"Network shows potential protein interactions influenced by **{selected_drug}** and related to **{selected_target}**.")
 
+    # --- Description / Evaluation ---
+    st.markdown("### 📝 Network Analysis / Description")
+    st.write(
+        f"The network contains **{len(string_proteins)} proteins**, including the selected target **{selected_target}**. "
+        f"The drug **{selected_drug}** is connected to **{len(connected_proteins)} proteins** in this network. "
+        "This network visualizes potential protein-protein interactions that could be influenced by the drug. "
+        "High fold-enrichment GO terms (shown above) indicate which biological processes, "
+        "such as apoptosis, cell proliferation, or immune response, might be impacted."
+    )
+
+    # Info box for quick summary
+    st.info(
+        f"💡 The network highlights potential protein interactions related to **{selected_target}** "
+        f"and influenced by **{selected_drug}**. Use this to hypothesize functional impacts."
+    )
 
 elif module == "5. Network Pharmacology (PPI)":
     st.header("🕸️ PPI Interaction Network (STRING v12)")
