@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import hashlib
 import requests
+import json
 from pyvis.network import Network
 import streamlit.components.v1 as components
 
@@ -44,6 +45,46 @@ drug_class_db = {
     "Fluoroquinolones": ["Ciprofloxacin", "Levofloxacin", "Moxifloxacin"],
     "Corticosteroids": ["Prednisone", "Dexamethasone", "Hydrocortisone"]
     # (Add remaining classes as needed - this structure supports infinite expansion)
+}
+
+# --- DISEASE MAPPING BASED ON DRUG CLASS ---
+disease_map = {
+    "NSAIDs": "Rheumatoid Arthritis",
+    "Statins": "Hyperlipidemia",
+    "ACE Inhibitors": "Hypertension",
+    "Beta-Blockers": "Heart Failure",
+    "Calcium Channel Blockers": "Hypertension",
+    "Anti-diabetics": "Type 2 Diabetes Mellitus",
+    "Oncology": "Cancer",
+    "Anti-convulsants": "Epilepsy",
+    "Benzodiazepines": "Anxiety Disorder",
+    "PPIs": "Peptic Ulcer Disease",
+    "Macrolides": "Bacterial Infection",
+    "Fluoroquinolones": "Urinary Tract Infection",
+    "Corticosteroids": "Inflammatory Disorders",
+    "5-HT3 Receptor Antagonists": "Chemotherapy-Induced Nausea",
+    "SGLT2 Inhibitors": "Type 2 Diabetes Mellitus",
+    "DPP-4 Inhibitors": "Type 2 Diabetes Mellitus"
+}
+
+# --- DISEASE MAPPING BASED ON DRUG CLASS ---
+disease_map = {
+    "NSAIDs": "Rheumatoid Arthritis",
+    "Statins": "Hyperlipidemia",
+    "ACE Inhibitors": "Hypertension",
+    "Beta-Blockers": "Heart Failure",
+    "Calcium Channel Blockers": "Hypertension",
+    "Anti-diabetics": "Type 2 Diabetes Mellitus",
+    "Oncology": "Cancer",
+    "Anti-convulsants": "Epilepsy",
+    "Benzodiazepines": "Anxiety Disorder",
+    "PPIs": "Peptic Ulcer Disease",
+    "Macrolides": "Bacterial Infection",
+    "Fluoroquinolones": "Urinary Tract Infection",
+    "Corticosteroids": "Inflammatory Disorders",
+    "5-HT3 Receptor Antagonists": "Chemotherapy-Induced Nausea",
+    "SGLT2 Inhibitors": "Type 2 Diabetes Mellitus",
+    "DPP-4 Inhibitors": "Type 2 Diabetes Mellitus"
 }
 
 herb_db = {
@@ -87,10 +128,43 @@ target_residues = {
 "HTR3A": ["Trp183","Tyr234","Asp204"]
 }
 
+# --- FUNCTION: Fetch disease genes from DisGeNET ---
+def fetch_disgenet_genes(disease_name):
+    """
+    Fetch disease genes from DisGeNET REST API
+    Returns list of gene symbols
+    """
+    try:
+        base_url = "https://www.disgenet.org/api/gda/disease"
+        params = {"format": "json", "diseaseName": disease_name}
+        headers = {"Accept": "application/json"}
+        response = requests.get(base_url, headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            genes = list({item["gene_symbol"] for item in data})
+            return genes
+        return []
+    except Exception as e:
+        print("DisGeNET fetch error:", e)
+        return []
+
+# --- FUNCTION: OMIM-like gene scoring ---
+def omim_score(genes):
+    """
+    Assign random importance scores to genes (simulate OMIM relevance)
+    """
+    rng = np.random.default_rng(42)
+    scores = {gene: rng.integers(1, 11) for gene in genes}
+    return scores
+
 
 # --- SIDEBAR ---
-st.sidebar.header("🔬 Pipeline Configuration")
+st.sidebar.header(" Pipeline Configuration")
 selected_class = st.sidebar.selectbox("Drug Category:", sorted(drug_class_db.keys()))
+# Auto disease selection based on drug class
+selected_disease = disease_map.get(selected_class, "General Disease")
+st.sidebar.markdown("###  Selected Disease")
+st.sidebar.success(selected_disease)
 selected_drug = st.sidebar.selectbox("Lead Compound:", drug_class_db[selected_class])
 selected_target = st.sidebar.selectbox("Target Protein:", ["CASP3", "HTR3A", "COX2", "EGFR", "STAT3", "TNF-alpha", "ACE2"])
 
@@ -190,59 +264,66 @@ if module == "1. Virtual Screening & Herb List":
     st.markdown(f"**Interpretation:** **{selected_drug}** was selected for further analysis due to its superior drug-likeness and binding affinity of {u_aff} kcal/mol.")
 
 elif module == "2. Venn Diagram Analysis":
-    st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_target}")
+     elif module == "2. Venn Diagram Analysis":
 
-    # --- DYNAMIC DATA GENERATOR ---
-    # We use the drug and target names to create unique 'random' counts
-    drug_seed = int(hashlib.md5(selected_drug.encode()).hexdigest(), 16) % 150
-    target_seed = int(hashlib.md5(selected_target.encode()).hexdigest(), 16) % 20
-    
-    # Calculate Dynamic Counts
-    total_drug_targets = 1100 + drug_seed    # e.g., 1100-1250
-    total_disease_targets = 80 + target_seed # e.g., 80-100
-    overlap_count = 30 + (drug_seed % 25)    # e.g., 30-55
-    
-    # Calculate Percentages
+    st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
+
+    # --- FETCH DISEASE GENES FROM DisGeNET ---
+    disease_genes = fetch_disgenet_genes(selected_disease)
+    if not disease_genes:
+        st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
+        disease_genes = ["ACE", "TNF", "IL6", "VEGFA", "MAPK1"]  # fallback
+
+    # --- DRUG TARGETS (same as before) ---
+    drug_targets = drug_class_db.get(selected_class, [])[:5]  # first 5 drugs as targets
+
+    # --- CALCULATE OVERLAP ---
+    overlap_genes = list(set(drug_targets) & set(disease_genes))
+
+    # --- OMIM SCORING ---
+    gene_scores = omim_score(overlap_genes)
+
+    # --- VENN DIAGRAM (Plotly circles like before) ---
+    total_drug_targets = len(drug_targets)
+    total_disease_targets = len(disease_genes)
+    overlap_count = len(overlap_genes)
+
     p1 = round((total_drug_targets / (total_drug_targets + total_disease_targets)) * 100, 1)
     p2 = round((total_disease_targets / (total_drug_targets + total_disease_targets)) * 100, 1)
     p_overlap = round((overlap_count / (total_drug_targets + total_disease_targets)) * 100, 1)
 
-    # --- VENN DIAGRAM VISUAL ---
     fig = go.Figure()
     fig.add_shape(type="circle", x0=0, y0=0, x1=2, y1=2, line_color="black", opacity=0.7)
     fig.add_shape(type="circle", x0=1.1, y0=0, x1=3.1, y1=2, line_color="black", opacity=0.7)
-    
+
     fig.add_annotation(x=0.5, y=1, text=f"{total_drug_targets}<br>({p1}%)", showarrow=False)
     fig.add_annotation(x=1.55, y=1, text=f"<b>{overlap_count}</b><br>({p_overlap}%)", showarrow=False)
     fig.add_annotation(x=2.6, y=1, text=f"{total_disease_targets}<br>({p2}%)", showarrow=False)
-    
+
     fig.update_xaxes(visible=False, range=[-0.5, 3.5])
     fig.update_yaxes(visible=False, range=[-0.5, 2.5])
     fig.update_layout(width=600, height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig)
-    
-    
 
-    # --- DYNAMIC TARGET TABLE ---
+    # --- SHOW DATA TABLE ---
     st.subheader("🧬 Dataset Intersection Details")
-    
     target_details = {
         "Dataset Category": [
-            f"💊 Drug Targets ({selected_drug})", 
-            f"🎯 Disease Targets ({selected_target})", 
+            f"💊 Drug Targets ({selected_drug})",
+            f"🎯 Disease Targets ({selected_disease})",
             "🤝 Intersection (Bioactive Hits)"
         ],
         "Total Count": [total_drug_targets, total_disease_targets, overlap_count],
         "Representative Identifiers": [
-            f"MMP{drug_seed}, CASP{drug_seed+2}, MAPK{drug_seed-5}, PTGS2, NOS3, PPARG", 
-            f"ACE{target_seed+80}, TMPRSS{target_seed+81}, AGTR1, ADAM17, SLC6A19", 
-            "AKT1, TP53, TNF, IL6, VEGFA, STAT3, CASP3"
+            ", ".join(drug_targets),
+            ", ".join(disease_genes[:5]),
+            ", ".join(overlap_genes)
         ]
     }
-    
     st.table(pd.DataFrame(target_details))
 
-    st.info(f"**Research Summary:** For the lead compound **{selected_drug}**, we identified **{overlap_count}** core targets that directly intersect with the **{selected_target}** disease network.")
+    st.info(f"**Research Summary:** For the lead compound **{selected_drug}**, we identified **{overlap_count}** core targets that directly intersect with the **{selected_disease}** disease network.")
+
 elif module == "3. KEGG Enrichment":
     st.header(f"📈 KEGG Fold Enrichment: {selected_drug}")
     
