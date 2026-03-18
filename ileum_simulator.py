@@ -244,6 +244,16 @@ rng = np.random.default_rng(seed)
 u_aff = calculate_affinity(selected_drug, selected_class, selected_target)
 
 u_ec50 = round(10**((abs(u_aff) - 5) / 2.3) * 9.2, 2)
+# --- Simple database of drug targets ---
+drug_target_db = {
+    "Metformin": ["AMPK", "SLC22A1", "OCT1"],
+    "Ibuprofen": ["PTGS1", "PTGS2"],
+    "Atorvastatin": ["HMGCR"],
+    "Simvastatin": ["HMGCR"],
+    "Tamoxifen": ["ESR1"],
+    "Methotrexate": ["DHFR"]
+    # add more drugs as needed
+}
 
 # --- MODULES ---
 
@@ -276,8 +286,11 @@ elif module == "2. Venn Diagram Analysis":
         st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
         disease_genes = ["ACE", "TNF", "IL6", "VEGFA", "MAPK1"]  # fallback
 
-    # --- DRUG TARGETS (using selected_drug itself for demo) ---
-    drug_targets = [selected_drug]  # simple: lead compound as target
+   # Get real protein targets from your "database"
+drug_targets = drug_target_db.get(selected_drug, [])
+if not drug_targets:
+    st.warning(f"No target data found for {selected_drug}. Using placeholder drug target.")
+    drug_targets = [selected_drug]
 
     # --- CALCULATE OVERLAP ---
     overlap_genes = list(set(drug_targets) & set(disease_genes))
