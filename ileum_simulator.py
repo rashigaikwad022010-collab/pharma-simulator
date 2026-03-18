@@ -254,6 +254,15 @@ drug_target_db = {
     "Methotrexate": ["DHFR"]
     # add more drugs as needed
 }
+# --- SIMPLE LOCAL DISEASE TARGET DATABASE ---
+disease_target_db = {
+    "Type 2 Diabetes Mellitus": ["AMPK", "SLC22A1", "OCT1", "ACE", "TNF", "IL6", "VEGFA", "MAPK1", "PPARG", "INSR"],
+    "Hypertension": ["ACE", "AGT", "NOS3", "ADRB1", "EDN1"],
+    "Cancer": ["TP53", "BRCA1", "BRCA2", "EGFR", "VEGFA", "MYC", "STAT3"],
+    "Rheumatoid Arthritis": ["TNF", "IL6", "IL1B", "STAT3", "PTGS2"],
+    "Heart Failure": ["TNF", "IL6", "NPPA", "NPPB", "STAT3"],
+    # Add more diseases here as needed
+}
 
 # --- MODULES ---
 
@@ -280,12 +289,10 @@ if module == "1. Virtual Screening & Herb List":
 elif module == "2. Venn Diagram Analysis":
     st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
 
-    # --- FETCH DISEASE GENES FROM DisGeNET ---
-    disease_genes = fetch_disgenet_genes(selected_disease)
-    if not disease_genes:
-        st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
-        disease_genes = ["ACE", "TNF", "IL6", "VEGFA", "MAPK1"]  # fallback
-
+    disease_genes = disease_target_db.get(selected_disease, [])
+if not disease_genes:
+    st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
+    disease_genes = ["GENE1", "GENE2", "GENE3"]  # fallback
    # Get real protein targets from your "database"
 drug_targets = drug_target_db.get(selected_drug, [])
 if not drug_targets:
