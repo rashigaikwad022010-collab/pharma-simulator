@@ -268,8 +268,7 @@ if module == "1. Virtual Screening & Herb List":
     st.markdown(f"**Interpretation:** **{selected_drug}** was selected for further analysis due to its superior drug-likeness and binding affinity of {u_aff} kcal/mol.")
 
 elif module == "2. Venn Diagram Analysis":
-    
-st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
+    st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
 
     # --- FETCH DISEASE GENES FROM DisGeNET ---
     disease_genes = fetch_disgenet_genes(selected_disease)
@@ -326,7 +325,6 @@ st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
     st.table(pd.DataFrame(target_details))
 
     st.info(f"**Research Summary:** For the lead compound **{selected_drug}**, we identified **{overlap_count}** core targets that directly intersect with the **{selected_disease}** disease network.")
-
 elif module == "3. KEGG Enrichment":
     st.header(f"📈 KEGG Fold Enrichment: {selected_drug}")
     
