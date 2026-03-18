@@ -268,19 +268,20 @@ if module == "1. Virtual Screening & Herb List":
     st.markdown(f"**Interpretation:** **{selected_drug}** was selected for further analysis due to its superior drug-likeness and binding affinity of {u_aff} kcal/mol.")
 
 elif module == "2. Venn Diagram Analysis":
-     st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
+    
+st.header(f"📊 Target Overlap: {selected_drug} vs. {selected_disease}")
 
-   # --- FETCH DISEASE GENES FROM DisGeNET ---
-disease_genes = fetch_disgenet_genes(selected_disease)
-if not disease_genes:
-    st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
-    disease_genes = ["ACE", "TNF", "IL6", "VEGFA", "MAPK1"]  # fallback
+    # --- FETCH DISEASE GENES FROM DisGeNET ---
+    disease_genes = fetch_disgenet_genes(selected_disease)
+    if not disease_genes:
+        st.warning(f"No genes found for {selected_disease}. Using placeholder targets.")
+        disease_genes = ["ACE", "TNF", "IL6", "VEGFA", "MAPK1"]  # fallback
 
-# --- DRUG TARGETS (using selected_drug itself for demo) ---
-drug_targets = [selected_drug]  # simple: lead compound as target
+    # --- DRUG TARGETS (using selected_drug itself for demo) ---
+    drug_targets = [selected_drug]  # simple: lead compound as target
 
-# --- CALCULATE OVERLAP ---
-overlap_genes = list(set(drug_targets) & set(disease_genes))
+    # --- CALCULATE OVERLAP ---
+    overlap_genes = list(set(drug_targets) & set(disease_genes))
 
     # --- OMIM SCORING ---
     gene_scores = omim_score(overlap_genes)
