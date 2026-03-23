@@ -2,9 +2,9 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Pharmacology Simulator", layout="centered")
+st.set_page_config(page_title="InSilicoRx", layout="wide", page_icon="🧬")
 
-st.title("🧪 Pharmacology Simulator")
+st.title("🧬 InSilicoRx: An Integrated Drug Discovery & Docking Simulator")
 st.write("College-level drug interaction & dose-response simulator")
 
 st.header("Patient Details")
