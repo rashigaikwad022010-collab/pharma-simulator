@@ -10,7 +10,7 @@ from pyvis.network import Network
 import streamlit.components.v1 as components
 
 # --- UI SETTINGS ---
-st.set_page_config(page_title="Pharma Research Pipeline Pro", layout="wide", page_icon="🧬")
+st.set_page_config(page_title="InSilicoRx", layout="wide", page_icon="🧬")
 
 st.markdown("""
     <style>
@@ -22,7 +22,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🧬 Advanced Pharmaceutical Research & Docking Pipeline")
+st.title("🧬 InSilicoRx: An Integrated Drug Discovery & Docking Simulator")
 
 # --- DATABASE: 50+ DRUG CLASSES & UNIQUE HERB CONSTITUENTS ---
 drug_class_db = {
