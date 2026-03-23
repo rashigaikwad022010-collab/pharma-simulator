@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import ileum_simulator
 
 st.set_page_config(page_title="InSilicoRx", layout="wide", page_icon="🧬")
 
