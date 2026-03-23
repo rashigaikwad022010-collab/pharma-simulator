@@ -1,6 +1,6 @@
-# Pharmacology Simulator
+# 🧬 InSilicoRx: An Integrated Drug Discovery & Docking Simulator
 
-This is a college-level pharmacology simulation project.
+This is a college-level pharmacology simulation project. This project is a review and research-based computational drug discovery simulator integrating virtual screening, network pharmacology, molecular docking, and ADME/toxicity prediction.
 
 ## Features
 - Drug interaction checker
